@@ -48,11 +48,13 @@ import Animated, {
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { CablePickerModal } from '@/components/CablePickerModal';
 import { DeviceIcon, getDeviceColor } from '@/components/DeviceIcon';
+import { EdgeDetailSheet } from '@/components/EdgeDetailSheet';
 import { fetchProjectById, updateTopology } from '@/db/api';
 import { DeviceDrawer } from '@/features/devices/DeviceDrawer';
 import { NodeDetailSheet } from '@/features/devices/NodeDetailSheet';
 import { TerminalPanel } from '@/features/terminal/TerminalPanel';
 import { CABLE_COLORS, getCableCompatWarning } from '@/lib/constants';
+import { exportPdf } from '@/lib/exportPdf';
 import { topologyToSvg } from '@/lib/exportSvg';
 import { loadTopologyCache, saveTopologyCache } from '@/lib/topologyCache';
 import { findTracePath, generatePathTraceOutput, generateTraceOutput } from '@/lib/tracePacket';
@@ -208,6 +210,23 @@ function EdgeLine({
           {edge.cable_type}
         </SvgText>
       )}
+      {/* VLAN badge — shown whenever vlan_id is set, regardless of showLabels */}
+      {edge.vlan_id !== undefined && (
+        <>
+          <Rect
+            x={midX - 18} y={midY - 10}
+            width={36} height={16}
+            rx={4} ry={4}
+            fill="#1E293B" stroke="#6366F1" strokeWidth={1}
+          />
+          <SvgText
+            x={midX} y={midY + 3}
+            fill="#A5B4FC" fontSize={9} fontWeight="700" textAnchor="middle"
+          >
+            {`V${edge.vlan_id}`}
+          </SvgText>
+        </>
+      )}
     </Svg>
   );
 }
@@ -284,6 +303,7 @@ function DeviceNode({
             transform: [{ translateX: -36 }],
             width: 72,
             alignItems: 'center',
+            gap: 2,
           }}
         >
           <View style={{
@@ -293,18 +313,26 @@ function DeviceNode({
             paddingVertical: 2,
           }}>
             <Text
-              style={{
-                fontSize: 10,
-                textAlign: 'center',
-                color: '#F1F5F9',
-                fontWeight: '600',
-                letterSpacing: 0.1,
-              }}
+              style={{ fontSize: 10, textAlign: 'center', color: '#F1F5F9', fontWeight: '600', letterSpacing: 0.1 }}
               numberOfLines={1}
             >
               {node.hostname || node.label}
             </Text>
           </View>
+          {!!node.ip_address && (
+            <View style={{
+              backgroundColor: 'rgba(6,182,212,0.18)',
+              borderRadius: 5,
+              paddingHorizontal: 4,
+              paddingVertical: 1,
+              borderWidth: 0.5,
+              borderColor: 'rgba(6,182,212,0.4)',
+            }}>
+              <Text style={{ fontSize: 8.5, textAlign: 'center', color: '#67E8F9', fontFamily: 'monospace' }} numberOfLines={1}>
+                {node.ip_address}
+              </Text>
+            </View>
+          )}
         </View>
       </Animated.View>
     </GestureDetector>
@@ -319,7 +347,7 @@ export default function CanvasScreen() {
   const {
     nodes, edges, selectedNodeIds, selectedEdgeIds,
     zoom, panX, panY, showGrid, isConnecting, connectingFromNodeId,
-    loadTopology, addNode, moveNode, removeNode, addEdge,
+    loadTopology, addNode, moveNode, removeNode, addEdge, updateEdge,
     selectNode, selectEdge, clearSelection, deleteSelected,
     setZoom, setPan, fitToScreen, setConnecting, toggleGrid,
     undo, redo, undoStack, redoStack, isDirty, clearDirty,
@@ -335,6 +363,7 @@ export default function CanvasScreen() {
   const [isOffline, setIsOffline] = useState(false);
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
 
   // Pan/zoom animated values
   const canvasScale = useSharedValue(1);
@@ -668,6 +697,15 @@ export default function CanvasScreen() {
     }
   }, [projectId]);
 
+  const handleExportPdf = useCallback(async () => {
+    setExportMenuVisible(false);
+    try {
+      await exportPdf(projectName, nodes, edges);
+    } catch (e) {
+      console.error('PDF export failed', e);
+    }
+  }, [projectName, nodes, edges]);
+
   const handleDrop = (type: DeviceType) => {
     const cx = -canvasX.value / canvasScale.value + screenW / 2 / canvasScale.value;
     const cy = -canvasY.value / canvasScale.value + screenH / 3 / canvasScale.value;
@@ -772,7 +810,7 @@ export default function CanvasScreen() {
                 nodes={nodes}
                 showLabels={showLinkLabels}
                 selected={selectedEdgeIds.includes(edge.id)}
-                onPress={() => selectEdge(edge.id)}
+                onPress={() => { selectEdge(edge.id); setEditingEdgeId(edge.id); }}
                 simulationMode={simulationMode}
                 packetType={packetType}
                 isTracePath={tracePathEdgeIds.has(edge.id)}
@@ -1137,6 +1175,21 @@ export default function CanvasScreen() {
             </Pressable>
 
             <Pressable
+              onPress={handleExportPdf}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#0F172A', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#F59E0B30' }}
+            >
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#F59E0B20', alignItems: 'center', justifyContent: 'center' }}>
+                <Download size={20} color="#F59E0B" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#F1F5F9', fontSize: 15, fontWeight: '700' }}>Export as PDF</Text>
+                <Text style={{ color: '#64748B', fontSize: 12, marginTop: 2 }}>
+                  Device table, cable legend & topology diagram
+                </Text>
+              </View>
+            </Pressable>
+
+            <Pressable
               onPress={() => setExportMenuVisible(false)}
               style={{ backgroundColor: '#334155', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 }}
             >
@@ -1151,6 +1204,14 @@ export default function CanvasScreen() {
         <NodeDetailSheet
           nodeId={editingNodeId}
           onClose={() => setEditingNodeId(null)}
+        />
+      )}
+
+      {/* Edge detail sheet — VLAN assignment + delete */}
+      {editingEdgeId && (
+        <EdgeDetailSheet
+          edgeId={editingEdgeId}
+          onClose={() => setEditingEdgeId(null)}
         />
       )}
 

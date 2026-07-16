@@ -37,6 +37,7 @@ interface CanvasStore extends CanvasState {
   removeNode: (id: string) => void;
   // Edges
   addEdge: (sourceId: string, targetId: string, cableType: CableType) => NetworkEdge;
+  updateEdge: (id: string, updates: Partial<NetworkEdge>) => void;
   removeEdge: (id: string) => void;
   // Selection
   selectNode: (id: string, multi?: boolean) => void;
@@ -176,6 +177,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((s) => ({
       edges: s.edges.filter((e) => e.id !== id),
       selectedEdgeIds: s.selectedEdgeIds.filter((eid) => eid !== id),
+      isDirty: true,
+    }));
+  },
+
+  updateEdge: (id, updates) => {
+    set((s) => ({
+      edges: s.edges.map((e) => (e.id === id ? { ...e, ...updates } : e)),
       isDirty: true,
     }));
   },

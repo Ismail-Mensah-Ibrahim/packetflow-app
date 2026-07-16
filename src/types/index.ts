@@ -151,6 +151,7 @@ export interface NetworkEdge {
   status: ConnectionStatus;
   source_interface?: string;
   target_interface?: string;
+  vlan_id?: number; // 1–4094, undefined = trunk / untagged
 }
 
 export interface TopologyData {

@@ -1,5 +1,6 @@
 // Packet trace engine — realistic Cisco IOS-style terminal output for
 // both on-connect link-up events and full source→destination path traces.
+// VLAN-aware: traces report blocked hops when VLAN IDs mismatch.
 import type { CableType, DeviceType, NetworkEdge, NetworkNode } from '@/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -114,8 +115,6 @@ export function findTracePath(
   return null; // no path
 }
 
-// ─── On-connect link-up output (runs when a cable is added) ──────────────────
-
 export function generateTraceOutput(
   src: NetworkNode,
   tgt: NetworkNode,
@@ -218,9 +217,27 @@ export function generatePathTraceOutput(
     const hopIp  = mockIp(hopNode.id, i + 1);
     const iface  = ingressIf(hopNode, i);
     const cable  = cableDesc(hopEdge.cable_type);
+    const vlanTag = hopEdge.vlan_id ? ` VLAN ${hopEdge.vlan_id}` : '';
+
+    // VLAN break detection: compare with previous hop's VLAN
+    const prevEdge = i > 0 ? edgeMap.get(path.edgeIds[i - 1]) : null;
+    const prevVlan = prevEdge?.vlan_id;
+    const curVlan  = hopEdge.vlan_id;
+    if (
+      prevVlan !== undefined && curVlan !== undefined &&
+      prevVlan !== curVlan
+    ) {
+      lines.push(
+        `  ${i + 1}  * * *  [BLOCKED — VLAN mismatch: ${prevVlan} → ${curVlan}]`,
+        `     Packet dropped at ${hopNode.label} (${iface}). Check trunk/access VLAN config.`,
+      );
+      lines.push(``, `! Trace failed — VLAN boundary at hop ${i + 1}.`, ``);
+      return lines;
+    }
+
     lines.push(
       `  ${i + 1}  ${hopIp} [${hopNode.label}]  ${ms()} msec  ${ms()} msec  ${ms()} msec`,
-      `     via ${iface} (${cable})`,
+      `     via ${iface} (${cable})${vlanTag}`,
     );
   }
 
