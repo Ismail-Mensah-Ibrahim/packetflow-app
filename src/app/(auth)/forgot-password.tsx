@@ -3,11 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import { ArrowLeft, Mail } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/client/supabase';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,9 +23,13 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior="padding" className="flex-1 bg-background">
+    <KeyboardAvoidingView behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-background">
       <StatusBar style="auto" />
-      <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-12" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Back */}
         <Link href="/(auth)/sign-in" asChild>
           <Pressable onPress={() => {}} className="flex-row items-center gap-2 mb-10 active:opacity-60">

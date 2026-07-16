@@ -20,6 +20,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { firebaseAuth } from '@/client/firebase';
 import { supabase } from '@/client/supabase';
 import { SubscriptionBadge } from '@/components/StatusBadge';
@@ -57,6 +58,7 @@ export default function ProfileScreen() {
   const { session } = useSession();
   const { profile, projects, setProfile } = useAppStore();
   const [signingOut, setSigningOut] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const { isLoading } = useQuery({
     queryKey: ['profile', session?.user.id],
@@ -102,7 +104,7 @@ export default function ProfileScreen() {
   return (
     <View className="flex-1 bg-background">
       <StatusBar style="auto" />
-      <View className="px-5 pt-14 pb-4 border-b border-border flex-row items-center justify-between">
+      <View className="px-5 pb-4 border-b border-border flex-row items-center justify-between" style={{ paddingTop: insets.top + 8 }}>
         <View className="w-8" />
         <Text className="text-foreground text-2xl font-bold text-center">Profile</Text>
         <Pressable onPress={() => router.push('/(app)/settings' as any)} className="w-8 h-8 rounded-full bg-card border border-border items-center justify-center active:opacity-70">

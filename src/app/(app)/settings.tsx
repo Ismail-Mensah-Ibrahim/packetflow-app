@@ -4,6 +4,7 @@ import { signOut as fbSignOut } from 'firebase/auth';
 import { ArrowLeft, ChevronRight, LogOut } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, useColorScheme, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { firebaseAuth } from '@/client/firebase';
 import { supabase } from '@/client/supabase';
@@ -71,6 +72,7 @@ export default function SettingsScreen() {
     backend, setBackend,
   } = useSettingsStore();
   const [signingOut, setSigningOut] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -95,7 +97,7 @@ export default function SettingsScreen() {
   return (
     <View className="flex-1 bg-background">
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <View className="flex-row items-center gap-3 px-4 pt-14 pb-4 border-b border-border bg-background">
+      <View className="flex-row items-center gap-3 px-4 pb-4 border-b border-border bg-background" style={{ paddingTop: insets.top + 8 }}>
         <Pressable onPress={() => router.back()} className="w-8 h-8 rounded-full bg-card border border-border items-center justify-center active:opacity-70">
           <ArrowLeft size={18} color={isDark ? '#CBD5E1' : '#6B7280'} />
         </Pressable>

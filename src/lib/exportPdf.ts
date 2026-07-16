@@ -1,7 +1,8 @@
 // PDF export — generates a rich HTML document with:
 //   1. Topology SVG diagram
 //   2. Device inventory table (hostname, type, IP, MAC, description)
-//   3. Cable legend (type, color, count)
+//   3. Cable legend (type, color, count, VLANs)
+//   4. QR code linking to the read-only /view topology viewer
 // Web: opens a print-ready window (window.open + window.print)
 // Native: writes HTML to cache, shares via expo-sharing
 
@@ -11,10 +12,21 @@ import { topologyToSvg } from '@/lib/exportSvg';
 import { CABLE_COLORS } from '@/lib/constants';
 import type { NetworkEdge, NetworkNode } from '@/types';
 
-// ─── VLAN color helper ────────────────────────────────────────────────────────
-function vlanBadge(vlanId?: number): string {
-  if (!vlanId) return '';
-  return `<span style="display:inline-block;background:#312e81;color:#a5b4fc;border:1px solid #4f46e5;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;">V${vlanId}</span>`;
+const APP_BASE_URL = 'https://packetflow.app';
+
+// ─── QR code via Google Charts API (renders when HTML is open in browser) ────
+function buildQrSection(projectId: string): string {
+  const viewUrl = `${APP_BASE_URL}/view/${projectId}`;
+  const qrUrl   = `https://chart.googleapis.com/chart?cht=qr&chs=160x160&choe=UTF-8&chl=${encodeURIComponent(viewUrl)}`;
+  return `
+  <div class="section" style="display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap">
+    <div>
+      <div class="section-title">Read-Only Viewer QR Code</div>
+      <img src="${qrUrl}" alt="QR Code" width="160" height="160"
+           style="border:2px solid #1e293b;border-radius:10px;background:#fff;display:block"/>
+      <p style="font-size:11px;color:#475569;margin:6px 0 0;word-break:break-all;max-width:180px">${viewUrl}</p>
+    </div>
+  </div>`;
 }
 
 // ─── Cable legend ─────────────────────────────────────────────────────────────
@@ -61,6 +73,7 @@ function buildDeviceTable(nodes: NetworkNode[]): string {
 // ─── Full HTML document ───────────────────────────────────────────────────────
 function buildHtml(
   projectName: string,
+  projectId: string,
   nodes: NetworkNode[],
   edges: NetworkEdge[],
 ): string {
@@ -88,8 +101,7 @@ function buildHtml(
              text-transform:uppercase; padding:8px 12px; text-align:left; }
     td     { border-bottom:1px solid #1e293b; }
     .btn   { display:inline-block; margin:0 0 24px; padding:10px 20px; background:#2563eb;
-             color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700;
-             cursor:pointer; border-radius:10px; }
+             color:#fff; border:none; font-size:14px; font-weight:700; cursor:pointer; border-radius:10px; }
   </style>
 </head>
 <body>
@@ -104,6 +116,8 @@ function buildHtml(
     <div class="section-title">Topology Diagram</div>
     <div class="diagram">${svgStr}</div>
   </div>
+
+  ${buildQrSection(projectId)}
 
   <div class="section">
     <div class="section-title">Device Inventory</div>
@@ -141,13 +155,13 @@ function buildHtml(
 // ─── Public API ───────────────────────────────────────────────────────────────
 export async function exportPdf(
   projectName: string,
+  projectId: string,
   nodes: NetworkNode[],
   edges: NetworkEdge[],
 ): Promise<void> {
-  const html = buildHtml(projectName, nodes, edges);
+  const html = buildHtml(projectName, projectId, nodes, edges);
 
   if (process.env.EXPO_OS === 'web') {
-    // Open in a new tab, auto-trigger browser print dialog
     const win = window.open('', '_blank');
     if (win) {
       win.document.write(html);

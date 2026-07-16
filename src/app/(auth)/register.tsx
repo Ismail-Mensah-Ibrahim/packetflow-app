@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { firebaseAuth } from '@/client/firebase';
 import { supabase } from '@/client/supabase';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -18,6 +19,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 export default function RegisterScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const insets = useSafeAreaInsets();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -62,11 +64,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior="padding" className="flex-1 bg-background">
+    <KeyboardAvoidingView behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-background">
       <StatusBar style="auto" />
       <ScrollView
-        contentContainerClassName="flex-grow justify-center px-6 py-12"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View className="items-center mb-8 gap-2">

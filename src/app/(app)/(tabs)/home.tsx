@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ProjectCard } from '@/components/ProjectCard';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -43,6 +44,7 @@ function QuickActionItem({ icon, label, onPress }: { icon: React.ReactNode; labe
 export default function HomeScreen() {
   const { session } = useSession();
   const { profile, projects, setProfile, setProjects, addProject } = useAppStore();
+  const insets = useSafeAreaInsets();
 
   const { data: profileData, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', session?.user.id],
@@ -77,7 +79,10 @@ export default function HomeScreen() {
       <StatusBar style="auto" />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 pt-14 pb-4 bg-background border-b border-border">
+      <View
+        className="flex-row items-center justify-between px-5 pb-4 bg-background border-b border-border"
+        style={{ paddingTop: insets.top + 8 }}
+      >
         <View className="flex-row items-center gap-2">
           <View className="w-8 h-8 rounded-full bg-primary items-center justify-center">
             <Text className="text-white text-sm font-bold">{displayName.charAt(0).toUpperCase()}</Text>

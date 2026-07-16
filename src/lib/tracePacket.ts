@@ -159,8 +159,8 @@ export function generatePathTraceOutput(
   const dst = nodeMap.get(path.nodeIds[path.nodeIds.length - 1]);
   if (!src || !dst) return ['! Trace error: invalid path'];
 
-  const srcIp = mockIp(src.id, 0);
-  const dstIp = mockIp(dst.id, path.nodeIds.length - 1);
+  const srcIp = src.ip_address || mockIp(src.id, 0);
+  const dstIp = dst.ip_address || mockIp(dst.id, path.nodeIds.length - 1);
 
   const lines: string[] = [
     ``,
@@ -214,7 +214,7 @@ export function generatePathTraceOutput(
     const hopNode = nodeMap.get(path.nodeIds[i + 1]);
     const hopEdge = edgeMap.get(path.edgeIds[i]);
     if (!hopNode || !hopEdge) continue;
-    const hopIp  = mockIp(hopNode.id, i + 1);
+    const hopIp  = hopNode.ip_address || mockIp(hopNode.id, i + 1);
     const iface  = ingressIf(hopNode, i);
     const cable  = cableDesc(hopEdge.cable_type);
     const vlanTag = hopEdge.vlan_id ? ` VLAN ${hopEdge.vlan_id}` : '';
@@ -227,11 +227,24 @@ export function generatePathTraceOutput(
       prevVlan !== undefined && curVlan !== undefined &&
       prevVlan !== curVlan
     ) {
+      // Inter-VLAN routing: if this hop is a router, it routes between VLANs
+      if (hopNode.type === 'router') {
+        lines.push(
+          `  ${i + 1}  ${hopIp} [${hopNode.label}]  ${ms()} msec  ${ms()} msec  ${ms()} msec`,
+          `     via ${iface} (${cable}) — INTER-VLAN ROUTING VLAN ${prevVlan} → VLAN ${curVlan}`,
+          `     ${prompt(hopNode)} ip route VLAN${prevVlan} VLAN${curVlan}`,
+          `     %LINEPROTO-5: Line protocol on Interface Vlan${prevVlan}, changed state to up`,
+          `     %LINEPROTO-5: Line protocol on Interface Vlan${curVlan}, changed state to up`,
+        );
+        // Router handled the VLAN transition — continue trace on new VLAN
+        continue;
+      }
+      // Non-router node: packet blocked
       lines.push(
         `  ${i + 1}  * * *  [BLOCKED — VLAN mismatch: ${prevVlan} → ${curVlan}]`,
         `     Packet dropped at ${hopNode.label} (${iface}). Check trunk/access VLAN config.`,
       );
-      lines.push(``, `! Trace failed — VLAN boundary at hop ${i + 1}.`, ``);
+      lines.push(``, `! Trace failed — VLAN boundary at hop ${i + 1}. Add a router for inter-VLAN routing.`, ``);
       return lines;
     }
 

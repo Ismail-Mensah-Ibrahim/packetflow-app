@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { firebaseAuth } from '@/client/firebase';
 import { supabase } from '@/client/supabase';
@@ -43,6 +44,7 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const backend = useSettingsStore((s) => s.backend);
+  const insets = useSafeAreaInsets();
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Please enter your email and password.'); return; }
@@ -66,9 +68,16 @@ export default function SignInScreen() {
   const backendLabel = backend === 'firebase' ? '🔥 Firebase' : '⚡ Supabase';
 
   return (
-    <KeyboardAvoidingView behavior="padding" className="flex-1 bg-background">
+    <KeyboardAvoidingView
+      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-background"
+    >
       <StatusBar style="auto" />
-      <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-12" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View className="items-center mb-10 gap-3">
           <Text className="text-foreground text-3xl font-bold">Welcome Back!</Text>
           <Text className="text-muted-foreground text-sm">Login to your account</Text>

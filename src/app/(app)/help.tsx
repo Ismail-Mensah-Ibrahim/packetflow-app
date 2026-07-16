@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, MessageCircle, Users, Video } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const faqs = [
   { q: 'How do I add a device to the canvas?', a: 'Tap the Tools button at the bottom of the Canvas screen to open the Device Library. Then tap any device to add it to the center of the canvas, or drag to place it at a specific position.' },
@@ -32,10 +33,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function HelpScreen() {
+  const insets = useSafeAreaInsets();
   return (
     <View className="flex-1 bg-background">
       <StatusBar style="auto" />
-      <View className="flex-row items-center gap-3 px-4 pt-14 pb-4 border-b border-border bg-background">
+      <View className="flex-row items-center gap-3 px-4 pb-4 border-b border-border bg-background" style={{ paddingTop: insets.top + 8 }}>
         <Pressable onPress={() => router.back()} className="w-8 h-8 rounded-full bg-card border border-border items-center justify-center active:opacity-70">
           <ArrowLeft size={18} color="#6B7280" />
         </Pressable>

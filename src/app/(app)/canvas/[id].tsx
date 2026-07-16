@@ -700,7 +700,7 @@ export default function CanvasScreen() {
   const handleExportPdf = useCallback(async () => {
     setExportMenuVisible(false);
     try {
-      await exportPdf(projectName, nodes, edges);
+      await exportPdf(projectName, projectId ?? '', nodes, edges);
     } catch (e) {
       console.error('PDF export failed', e);
     }
