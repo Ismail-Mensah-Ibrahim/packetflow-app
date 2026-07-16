@@ -32,7 +32,7 @@ export default function SplashScreen() {
 				useNativeDriver: false,
 			}),
 		]).start(() => {
-			router.replace("/(auth)/onboarding");
+			router.replace("/onboarding");
 		});
 	}, [logoOpacity, logoScale, progress]);
 

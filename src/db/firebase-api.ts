@@ -172,3 +172,78 @@ export async function fbUpdateProfile(
 	const refreshed = await fbFetchProfile(userId);
 	return refreshed ?? ({ ...updates, id: userId } as Profile);
 }
+
+// ─── Missing Project Meta & Duplication ─────────────────────────────────────
+export async function fbDuplicateProject(project: Project): Promise<Project> {
+	const ref = doc(collection(firestore, "projects"));
+	const now = serverTimestamp();
+	const data = {
+		user_id: project.user_id,
+		name: `${project.name} (Copy)`,
+		description: project.description ?? "",
+		topology_data: project.topology_data,
+		device_count: project.device_count ?? 0,
+		is_favorite: false,
+		is_archived: false,
+		thumbnail_url: project.thumbnail_url ?? null,
+		created_at: now,
+		updated_at: now,
+	};
+	await setDoc(ref, data);
+	const snap = await getDoc(ref);
+	return docToProject(snap.id, snap.data() as Record<string, unknown>);
+}
+
+export async function fbUpdateProjectMeta(
+	id: string,
+	updates: Partial<
+		Pick<Project, "name" | "description" | "is_favorite" | "is_archived">
+	>,
+): Promise<void> {
+	const ref = doc(firestore, "projects", id);
+	await updateDoc(ref, {
+		...updates,
+		updated_at: serverTimestamp(),
+	});
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+export async function fbFetchNotifications(userId: string): Promise<any[]> {
+	const q = query(
+		collection(firestore, "notifications"),
+		where("user_id", "==", userId),
+		orderBy("created_at", "desc"),
+		limit(50),
+	);
+	const snap = await getDocs(q);
+	return snap.docs.map((d) => {
+		const data = d.data();
+		return {
+			id: d.id,
+			user_id: data.user_id,
+			title: data.title,
+			message: data.message,
+			type: data.type,
+			is_read: data.is_read,
+			created_at: tsToIso(data.created_at),
+		};
+	});
+}
+
+export async function fbMarkNotificationRead(id: string): Promise<void> {
+	const ref = doc(firestore, "notifications", id);
+	await updateDoc(ref, { is_read: true });
+}
+
+export async function fbMarkAllNotificationsRead(
+	userId: string,
+): Promise<void> {
+	const q = query(
+		collection(firestore, "notifications"),
+		where("user_id", "==", userId),
+		where("is_read", "==", false),
+	);
+	const snap = await getDocs(q);
+	const promises = snap.docs.map((d) => updateDoc(d.ref, { is_read: true }));
+	await Promise.all(promises);
+}

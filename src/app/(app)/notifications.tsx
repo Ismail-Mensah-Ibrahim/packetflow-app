@@ -17,9 +17,9 @@ import {
 	Text,
 	View,
 } from "react-native";
+import { backendApi } from "@/client/backend";
 import { EmptyState } from "@/components/EmptyState";
 import { useSession } from "@/ctx";
-import { fetchNotifications, markNotificationRead } from "@/db/api";
 import { useAppStore } from "@/store/useAppStore";
 
 function NotifIcon({ type }: { type: string }) {
@@ -49,38 +49,46 @@ function NotifIcon({ type }: { type: string }) {
 }
 
 export default function NotificationsScreen() {
-	const { session } = useSession();
+	const { session, firebaseUser } = useSession();
+	const userId = session?.user.id || firebaseUser?.uid;
 	const { notifications, setNotifications, markRead, markAllRead } =
 		useAppStore();
 
 	const { isLoading, refetch } = useQuery({
-		queryKey: ["notifications", session?.user.id],
-		queryFn: () => fetchNotifications(session?.user.id!),
-		enabled: !!session?.user.id,
-		onSuccess: (data: Awaited<ReturnType<typeof fetchNotifications>>) =>
-			setNotifications(data),
+		queryKey: ["notifications", userId],
+		queryFn: () => backendApi.fetchNotifications(userId!),
+		enabled: !!userId,
+		onSuccess: (
+			data: Awaited<ReturnType<typeof backendApi.fetchNotifications>>,
+		) => setNotifications(data),
 	} as any);
 
 	useFocusEffect(
 		useCallback(() => {
-			refetch();
-		}, [refetch]),
+			refetch().then((data) => {
+				if (data.data) {
+					setNotifications(data.data as any);
+				}
+			});
+		}, [refetch, setNotifications]),
 	);
 
 	const handleMarkRead = async (id: string) => {
 		try {
-			await markNotificationRead(id);
-		} catch {}
-		markRead(id);
+			await backendApi.markNotificationRead(id);
+			markRead(id);
+		} catch (_e: any) {
+			console.error("Failed to mark read:", _e.message);
+		}
 	};
 
 	const handleMarkAllRead = async () => {
 		try {
-			for (const n of notifications.filter((n) => !n.is_read)) {
-				await markNotificationRead(n.id);
-			}
-		} catch {}
-		markAllRead();
+			await backendApi.markAllNotificationsRead(userId!);
+			markAllRead();
+		} catch (_e: any) {
+			console.error("Failed to mark all read:", _e.message);
+		}
 	};
 
 	const formatTime = (iso: string) => {

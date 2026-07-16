@@ -578,11 +578,11 @@ export default function OnboardingScreen() {
 			flatListRef.current?.scrollToIndex({ index: activeIndex + 1 });
 			setActiveIndex((i) => i + 1);
 		} else {
-			router.replace("/(auth)/sign-in");
+			router.replace("/sign-in");
 		}
 	};
 
-	const skip = () => router.replace("/(auth)/sign-in");
+	const skip = () => router.replace("/sign-in");
 	const accent = SLIDES[activeIndex].accentColor;
 
 	return (

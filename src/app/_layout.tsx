@@ -4,9 +4,10 @@ import { PortalHost } from "@rn-primitives/portal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useColorScheme as useNativeWindColorScheme } from "nativewind";
+import { useEffect } from "react";
 import { ActivityIndicator, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
 import { SessionProvider, useSession } from "@/ctx";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
@@ -18,6 +19,11 @@ function RootLayoutNav() {
 	const { session, firebaseUser, isLoading } = useSession();
 	const systemScheme = useColorScheme();
 	const themeMode = useSettingsStore((s) => s.themeMode);
+	const { setColorScheme } = useNativeWindColorScheme();
+
+	useEffect(() => {
+		setColorScheme(themeMode);
+	}, [themeMode, setColorScheme]);
 
 	const isDark =
 		themeMode === "dark" || (themeMode === "system" && systemScheme === "dark");

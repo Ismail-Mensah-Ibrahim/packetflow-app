@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ArrowLeft, ExternalLink, FileText, Shield } from "lucide-react-native";
 import React from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 
 function LogoMark() {
@@ -134,7 +134,12 @@ export default function AboutScreen() {
 						].map((item, i, arr) => (
 							<React.Fragment key={item.label}>
 								<Pressable
-									onPress={() => {}}
+									onPress={() =>
+										Alert.alert(
+											"Coming Soon",
+											"Open Source Licenses directory will be available soon.",
+										)
+									}
 									className="flex-row items-center gap-3 px-5 py-4 active:opacity-70"
 								>
 									<View className="w-8 h-8 rounded-full bg-muted items-center justify-center">

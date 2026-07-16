@@ -22,6 +22,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Pressable,
+	ScrollView,
 	Text,
 	useWindowDimensions,
 	View,
@@ -36,6 +37,7 @@ import Animated, {
 	withSpring,
 	withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, {
 	Circle,
 	G,
@@ -44,10 +46,10 @@ import Svg, {
 	Rect,
 	Text as SvgText,
 } from "react-native-svg";
+import { backendApi } from "@/client/backend";
 import { CablePickerModal } from "@/components/CablePickerModal";
 import { DeviceIcon, getDeviceColor } from "@/components/DeviceIcon";
 import { EdgeDetailSheet } from "@/components/EdgeDetailSheet";
-import { fetchProjectById, updateTopology } from "@/db/api";
 import { DeviceDrawer } from "@/features/devices/DeviceDrawer";
 import { NodeDetailSheet } from "@/features/devices/NodeDetailSheet";
 import { TerminalPanel } from "@/features/terminal/TerminalPanel";
@@ -467,6 +469,7 @@ function DeviceNode({
 export default function CanvasScreen() {
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
 	const { width: screenW, height: screenH } = useWindowDimensions();
+	const insets = useSafeAreaInsets();
 
 	const {
 		nodes,
@@ -534,7 +537,7 @@ export default function CanvasScreen() {
 		if (!projectId) return;
 		(async () => {
 			try {
-				const project = await fetchProjectById(projectId);
+				const project = await backendApi.fetchProjectById(projectId);
 				if (project) {
 					setProjectName(project.name);
 					const remoteNodes = project.topology_data?.nodes ?? [];
@@ -592,7 +595,7 @@ export default function CanvasScreen() {
 		const timer = setTimeout(async () => {
 			setIsSaving(true);
 			try {
-				await updateTopology(projectId, { nodes, edges });
+				await backendApi.updateTopology(projectId, { nodes, edges });
 				await saveTopologyCache(projectId, projectName, { nodes, edges });
 				clearDirty();
 				setLastSaved(new Date());
@@ -971,8 +974,8 @@ export default function CanvasScreen() {
 		setExportMenuVisible(false);
 		try {
 			await exportPdf(projectName, projectId ?? "", nodes, edges);
-		} catch (e) {
-			console.error("PDF export failed", e);
+		} catch (e: any) {
+			console.error("PDF export failed:", e.message);
 		}
 	}, [projectName, nodes, edges, projectId]);
 
@@ -1014,14 +1017,17 @@ export default function CanvasScreen() {
 		);
 	}
 
-	const zoomPct = Math.round(canvasScale.value * 100);
+	const zoomPct = Math.round(zoom * 100);
 
 	return (
 		<View className="flex-1 bg-[#0B1220]">
 			<StatusBar style="light" />
 
 			{/* ── Top toolbar ── */}
-			<View className="flex-row items-center justify-between px-4 pt-12 pb-3 bg-[#111827] border-b border-[#1E293B] z-10">
+			<View
+				className="flex-row items-center justify-between px-4 pb-3 bg-[#111827] border-b border-[#1E293B] z-10"
+				style={{ paddingTop: Math.max(insets.top, 16) }}
+			>
 				{/* Left: hamburger */}
 				<Pressable
 					onPress={() => setShowDrawer(true)}
@@ -1227,7 +1233,10 @@ export default function CanvasScreen() {
 
 			{/* Connecting indicator */}
 			{isConnecting && (
-				<View className="absolute top-24 self-center bg-[#F59E0B]/90 rounded-xl px-4 py-2 flex-row items-center gap-2">
+				<View
+					className="absolute self-center bg-[#F59E0B]/90 rounded-xl px-4 py-2 flex-row items-center gap-2"
+					style={{ top: Math.max(insets.top, 16) + 60 }}
+				>
 					<Text className="text-[#0B1220] text-sm font-semibold">
 						{connectingFromNodeId
 							? "Tap target device to connect"
@@ -1244,8 +1253,11 @@ export default function CanvasScreen() {
 
 			{/* Zoom level indicator */}
 			<View
-				className="absolute top-24 right-4 rounded-lg px-2 py-1"
-				style={{ backgroundColor: "rgba(17,24,39,0.92)" }}
+				className="absolute right-4 rounded-lg px-2 py-1"
+				style={{
+					backgroundColor: "rgba(17,24,39,0.92)",
+					top: Math.max(insets.top, 16) + 60,
+				}}
 			>
 				<Text style={{ color: "#CBD5E1", fontSize: 11, fontWeight: "600" }}>
 					{zoomPct}%
@@ -1255,8 +1267,9 @@ export default function CanvasScreen() {
 			{/* ── Simulation banner — shows tracer state ── */}
 			{simulationMode && (
 				<View
-					className="absolute top-24 self-center rounded-2xl overflow-hidden"
+					className="absolute self-center rounded-2xl overflow-hidden"
 					style={{
+						top: Math.max(insets.top, 16) + 60,
 						shadowColor: "#10B981",
 						shadowOpacity: 0.5,
 						shadowRadius: 12,
@@ -1326,8 +1339,9 @@ export default function CanvasScreen() {
 			{/* ── Simulation Panel ── */}
 			{simPanelVisible && (
 				<View
-					className="absolute bottom-20 self-center rounded-2xl p-4 gap-3"
+					className="absolute self-center rounded-2xl p-4 gap-3"
 					style={{
+						bottom: Math.max(insets.bottom, 12) + 70,
 						backgroundColor: "#0F172A",
 						borderWidth: 1,
 						borderColor: "#1E293B",
@@ -1516,139 +1530,156 @@ export default function CanvasScreen() {
 			</View>
 
 			{/* ── Bottom toolbar ── */}
-			<View className="flex-row items-center justify-between px-4 py-3 bg-[#111827] border-t border-[#1E293B]">
-				{/* Tools */}
-				<Pressable
-					onPress={() => setShowDrawer(true)}
-					className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
-					style={{ backgroundColor: showDrawer ? "#2563EB33" : "#1E293B" }}
+			<View
+				className="bg-[#111827] border-t border-[#1E293B]"
+				style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+			>
+				<ScrollView
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					contentContainerStyle={{
+						paddingHorizontal: 16,
+						paddingVertical: 12,
+						alignItems: "center",
+						gap: 16,
+					}}
 				>
-					<Wrench size={17} color={showDrawer ? "#3B82F6" : "#CBD5E1"} />
-					<Text
+					{/* Tools */}
+					<Pressable
+						onPress={() => setShowDrawer(true)}
+						className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
+						style={{ backgroundColor: showDrawer ? "#2563EB33" : "#1E293B" }}
+					>
+						<Wrench size={17} color={showDrawer ? "#3B82F6" : "#CBD5E1"} />
+						<Text
+							style={{
+								color: showDrawer ? "#3B82F6" : "#CBD5E1",
+								fontSize: 12,
+								fontWeight: "500",
+							}}
+						>
+							Tools
+						</Text>
+					</Pressable>
+
+					{/* Zoom controls: − | Fit | + */}
+					<View className="flex-row items-center gap-1.5">
+						<Pressable
+							onPress={zoomOut}
+							className="w-8 h-8 rounded-lg bg-[#1E293B] items-center justify-center active:opacity-70"
+						>
+							<Minus size={16} color="#CBD5E1" />
+						</Pressable>
+						<Pressable
+							onPress={handleFitScreen}
+							className="px-3 h-8 rounded-lg bg-[#1E293B] items-center justify-center active:opacity-70"
+						>
+							<Text
+								style={{ color: "#CBD5E1", fontSize: 12, fontWeight: "500" }}
+							>
+								Fit
+							</Text>
+						</Pressable>
+						<Pressable
+							onPress={zoomIn}
+							className="w-8 h-8 rounded-lg bg-[#1E293B] items-center justify-center active:opacity-70"
+						>
+							<Text style={{ color: "#CBD5E1", fontSize: 18, lineHeight: 20 }}>
+								+
+							</Text>
+						</Pressable>
+					</View>
+
+					{/* Simulate */}
+					<Pressable
+						onPress={() => {
+							setSimPanelVisible(!simPanelVisible);
+							setShowDrawer(false);
+						}}
+						className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
 						style={{
-							color: showDrawer ? "#3B82F6" : "#CBD5E1",
-							fontSize: 12,
-							fontWeight: "500",
+							backgroundColor: simulationMode
+								? "#10B98122"
+								: simPanelVisible
+									? "#10B98133"
+									: "#1E293B",
+							borderWidth: simulationMode ? 1 : 0,
+							borderColor: "#10B981",
 						}}
 					>
-						Tools
-					</Text>
-				</Pressable>
-
-				{/* Zoom controls: − | Fit | + */}
-				<View className="flex-row items-center gap-1.5">
-					<Pressable
-						onPress={zoomOut}
-						className="w-8 h-8 rounded-lg bg-[#1E293B] items-center justify-center active:opacity-70"
-					>
-						<Minus size={16} color="#CBD5E1" />
+						{simulationMode ? (
+							<Radio size={17} color="#10B981" />
+						) : (
+							<Play size={17} color={simPanelVisible ? "#10B981" : "#CBD5E1"} />
+						)}
+						<Text
+							style={{
+								color:
+									simulationMode || simPanelVisible ? "#10B981" : "#CBD5E1",
+								fontSize: 12,
+								fontWeight: "500",
+							}}
+						>
+							{simulationMode ? "Simulating" : "Simulate"}
+						</Text>
 					</Pressable>
+
+					{/* Console */}
 					<Pressable
-						onPress={handleFitScreen}
-						className="px-3 h-8 rounded-lg bg-[#1E293B] items-center justify-center active:opacity-70"
+						onPress={() => {
+							setTerminalExpanded(!terminalExpanded);
+							setShowDrawer(false);
+						}}
+						className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
+						style={{
+							backgroundColor: terminalExpanded ? "#2563EB33" : "#1E293B",
+						}}
 					>
+						<TerminalIcon
+							size={17}
+							color={terminalExpanded ? "#3B82F6" : "#CBD5E1"}
+						/>
+						<Text
+							style={{
+								color: terminalExpanded ? "#3B82F6" : "#CBD5E1",
+								fontSize: 12,
+								fontWeight: "500",
+							}}
+						>
+							Console
+						</Text>
+					</Pressable>
+
+					{/* Share */}
+					<Pressable
+						onPress={handleShare}
+						className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
+						style={{ backgroundColor: shareCopied ? "#16a34a33" : "#1E293B" }}
+					>
+						<Share2 size={17} color={shareCopied ? "#4ade80" : "#CBD5E1"} />
+						<Text
+							style={{
+								color: shareCopied ? "#4ade80" : "#CBD5E1",
+								fontSize: 12,
+								fontWeight: "500",
+							}}
+						>
+							{shareCopied ? "Copied!" : "Share"}
+						</Text>
+					</Pressable>
+
+					{/* Export */}
+					<Pressable
+						onPress={() => setExportMenuVisible(true)}
+						className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
+						style={{ backgroundColor: "#1E293B" }}
+					>
+						<Download size={17} color="#CBD5E1" />
 						<Text style={{ color: "#CBD5E1", fontSize: 12, fontWeight: "500" }}>
-							Fit
+							Export
 						</Text>
 					</Pressable>
-					<Pressable
-						onPress={zoomIn}
-						className="w-8 h-8 rounded-lg bg-[#1E293B] items-center justify-center active:opacity-70"
-					>
-						<Text style={{ color: "#CBD5E1", fontSize: 18, lineHeight: 20 }}>
-							+
-						</Text>
-					</Pressable>
-				</View>
-
-				{/* Simulate */}
-				<Pressable
-					onPress={() => {
-						setSimPanelVisible(!simPanelVisible);
-						setShowDrawer(false);
-					}}
-					className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
-					style={{
-						backgroundColor: simulationMode
-							? "#10B98122"
-							: simPanelVisible
-								? "#10B98133"
-								: "#1E293B",
-						borderWidth: simulationMode ? 1 : 0,
-						borderColor: "#10B981",
-					}}
-				>
-					{simulationMode ? (
-						<Radio size={17} color="#10B981" />
-					) : (
-						<Play size={17} color={simPanelVisible ? "#10B981" : "#CBD5E1"} />
-					)}
-					<Text
-						style={{
-							color: simulationMode || simPanelVisible ? "#10B981" : "#CBD5E1",
-							fontSize: 12,
-							fontWeight: "500",
-						}}
-					>
-						{simulationMode ? "Simulating" : "Simulate"}
-					</Text>
-				</Pressable>
-
-				{/* Console */}
-				<Pressable
-					onPress={() => {
-						setTerminalExpanded(!terminalExpanded);
-						setShowDrawer(false);
-					}}
-					className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
-					style={{
-						backgroundColor: terminalExpanded ? "#2563EB33" : "#1E293B",
-					}}
-				>
-					<TerminalIcon
-						size={17}
-						color={terminalExpanded ? "#3B82F6" : "#CBD5E1"}
-					/>
-					<Text
-						style={{
-							color: terminalExpanded ? "#3B82F6" : "#CBD5E1",
-							fontSize: 12,
-							fontWeight: "500",
-						}}
-					>
-						Console
-					</Text>
-				</Pressable>
-
-				{/* Share */}
-				<Pressable
-					onPress={handleShare}
-					className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
-					style={{ backgroundColor: shareCopied ? "#16a34a33" : "#1E293B" }}
-				>
-					<Share2 size={17} color={shareCopied ? "#4ade80" : "#CBD5E1"} />
-					<Text
-						style={{
-							color: shareCopied ? "#4ade80" : "#CBD5E1",
-							fontSize: 12,
-							fontWeight: "500",
-						}}
-					>
-						{shareCopied ? "Copied!" : "Share"}
-					</Text>
-				</Pressable>
-
-				{/* Export */}
-				<Pressable
-					onPress={() => setExportMenuVisible(true)}
-					className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl active:opacity-70"
-					style={{ backgroundColor: "#1E293B" }}
-				>
-					<Download size={17} color="#CBD5E1" />
-					<Text style={{ color: "#CBD5E1", fontSize: 12, fontWeight: "500" }}>
-						Export
-					</Text>
-				</Pressable>
+				</ScrollView>
 			</View>
 
 			{/* Device Drawer */}

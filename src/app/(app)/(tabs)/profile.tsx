@@ -20,11 +20,11 @@ import {
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { backendApi } from "@/client/backend";
 import { firebaseAuth } from "@/client/firebase";
 import { supabase } from "@/client/supabase";
 import { SubscriptionBadge } from "@/components/StatusBadge";
 import { useSession } from "@/ctx";
-import { fetchProfile } from "@/db/api";
 import { useAppStore } from "@/store/useAppStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
@@ -60,16 +60,17 @@ function MenuRow({ icon, label, onPress, danger, right }: MenuItem) {
 }
 
 export default function ProfileScreen() {
-	const { session } = useSession();
+	const { session, firebaseUser } = useSession();
+	const userId = session?.user.id || firebaseUser?.uid;
 	const { profile, projects, setProfile } = useAppStore();
 	const [signingOut, setSigningOut] = useState(false);
 	const insets = useSafeAreaInsets();
 
 	const { isLoading } = useQuery({
-		queryKey: ["profile", session?.user.id],
-		queryFn: () => fetchProfile(session?.user.id!),
-		enabled: !!session?.user.id,
-		onSuccess: (data: Awaited<ReturnType<typeof fetchProfile>>) => {
+		queryKey: ["profile", userId],
+		queryFn: () => backendApi.fetchProfile(userId!),
+		enabled: !!userId,
+		onSuccess: (data: Awaited<ReturnType<typeof backendApi.fetchProfile>>) => {
 			if (data) setProfile(data);
 		},
 	} as any);
@@ -102,17 +103,17 @@ export default function ProfileScreen() {
 		{
 			icon: <Edit3 size={16} color="#3B82F6" />,
 			label: "Edit Profile",
-			onPress: () => router.push("/(app)/edit-profile" as any),
+			onPress: () => router.push("/edit-profile" as any),
 		},
 		{
 			icon: <KeyRound size={16} color="#3B82F6" />,
 			label: "Change Password",
-			onPress: () => router.push("/(auth)/forgot-password" as any),
+			onPress: () => router.push("/forgot-password" as any),
 		},
 		{
 			icon: <Bell size={16} color="#3B82F6" />,
 			label: "Notifications",
-			onPress: () => router.push("/(app)/notifications" as any),
+			onPress: () => router.push("/notifications" as any),
 		},
 		{
 			icon: <Crown size={16} color="#F59E0B" />,
@@ -142,7 +143,7 @@ export default function ProfileScreen() {
 					Profile
 				</Text>
 				<Pressable
-					onPress={() => router.push("/(app)/settings" as any)}
+					onPress={() => router.push("/settings" as any)}
 					className="w-8 h-8 rounded-full bg-card border border-border items-center justify-center active:opacity-70"
 				>
 					<Settings size={16} color="#6B7280" />

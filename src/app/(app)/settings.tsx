@@ -395,12 +395,12 @@ export default function SettingsScreen() {
 					<Divider />
 					<SettingRow
 						label="Help & Support"
-						onPress={() => router.push("/(app)/help" as any)}
+						onPress={() => router.push("/help" as any)}
 					/>
 					<Divider />
 					<SettingRow
 						label="About PacketFlow"
-						onPress={() => router.push("/(app)/about" as any)}
+						onPress={() => router.push("/about" as any)}
 					/>
 				</View>
 

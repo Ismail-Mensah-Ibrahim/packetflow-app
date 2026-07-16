@@ -80,7 +80,7 @@ export default function SignInScreen() {
 				});
 				if (err) throw new Error(err.message);
 			}
-			router.replace("/(app)/(tabs)/home");
+			router.replace("/home");
 		} catch (e: unknown) {
 			setError(
 				e instanceof Error ? e.message : "Login failed. Please try again.",

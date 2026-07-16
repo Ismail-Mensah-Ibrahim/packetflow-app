@@ -1,23 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
 import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Bell, Clock, Cpu, Network, Plus, Star } from "lucide-react-native";
+import {
+	Bell,
+	Clock,
+	Cpu,
+	Moon,
+	Network,
+	Plus,
+	Star,
+	Sun,
+} from "lucide-react-native";
 import type React from "react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
+	Alert,
 	Pressable,
 	ScrollView,
 	Text,
+	useColorScheme,
 	View,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { backendApi } from "@/client/backend";
 import { ProjectCard } from "@/components/ProjectCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useSession } from "@/ctx";
-import { createProject, fetchProfile, fetchProjects } from "@/db/api";
 import { useAppStore } from "@/store/useAppStore";
+import { useSettingsStore } from "@/store/useSettingsStore";
 import type { DeviceType } from "@/types";
 
 function StatCard({
@@ -68,15 +80,26 @@ function QuickActionItem({
 }
 
 export default function HomeScreen() {
-	const { session } = useSession();
+	const { session, firebaseUser } = useSession();
+	const userId = session?.user.id || firebaseUser?.uid;
 	const { profile, projects, setProfile, setProjects, addProject } =
 		useAppStore();
+	const [isCreating, setIsCreating] = useState(false);
 	const insets = useSafeAreaInsets();
 
+	const { themeMode, setThemeMode } = useSettingsStore();
+	const systemScheme = useColorScheme();
+	const isDark =
+		themeMode === "dark" || (themeMode === "system" && systemScheme === "dark");
+
+	const toggleTheme = () => {
+		setThemeMode(isDark ? "light" : "dark");
+	};
+
 	const { data: profileData, isLoading: profileLoading } = useQuery({
-		queryKey: ["profile", session?.user.id],
-		queryFn: () => fetchProfile(session?.user.id!),
-		enabled: !!session?.user.id,
+		queryKey: ["profile", userId],
+		queryFn: () => backendApi.fetchProfile(userId!),
+		enabled: !!userId,
 	});
 
 	const {
@@ -84,9 +107,9 @@ export default function HomeScreen() {
 		isLoading: projectsLoading,
 		refetch,
 	} = useQuery({
-		queryKey: ["projects", session?.user.id],
-		queryFn: () => fetchProjects(session?.user.id!),
-		enabled: !!session?.user.id,
+		queryKey: ["projects", userId],
+		queryFn: () => backendApi.fetchProjects(userId!),
+		enabled: !!userId,
 	});
 
 	useFocusEffect(
@@ -107,13 +130,20 @@ export default function HomeScreen() {
 	const recentProjects = projects.slice(0, 6);
 
 	const handleCreateProject = async () => {
+		if (isCreating) return;
+		setIsCreating(true);
 		try {
-			const p = await createProject(
+			const p = await backendApi.createProject(
+				userId!,
 				`Network ${Date.now().toString().slice(-4)}`,
 			);
 			addProject(p);
-			router.push(`/(app)/canvas/${p.id}` as any);
-		} catch (_e) {}
+			router.push(`/canvas/${p.id}` as any);
+		} catch (_e: any) {
+			Alert.alert("Error creating project", _e.message);
+		} finally {
+			setIsCreating(false);
+		}
 	};
 
 	return (
@@ -136,10 +166,20 @@ export default function HomeScreen() {
 				<View className="flex-row items-center gap-3">
 					<StatusBadge status="online" size="sm" />
 					<Pressable
-						onPress={() => router.push("/(app)/notifications" as any)}
+						onPress={toggleTheme}
 						className="w-10 h-10 rounded-full bg-card border border-border items-center justify-center active:opacity-70"
 					>
-						<Bell size={18} color="#6B7280" />
+						{isDark ? (
+							<Sun size={18} color="#CBD5E1" />
+						) : (
+							<Moon size={18} color="#6B7280" />
+						)}
+					</Pressable>
+					<Pressable
+						onPress={() => router.push("/notifications" as any)}
+						className="w-10 h-10 rounded-full bg-card border border-border items-center justify-center active:opacity-70"
+					>
+						<Bell size={18} color={isDark ? "#CBD5E1" : "#6B7280"} />
 					</Pressable>
 				</View>
 			</View>
@@ -201,17 +241,22 @@ export default function HomeScreen() {
 								<QuickActionItem
 									icon={<Clock size={22} color="#8B5CF6" />}
 									label="Recent"
-									onPress={() => router.push("/(app)/(tabs)/projects" as any)}
+									onPress={() => router.push("/projects" as any)}
 								/>
 								<QuickActionItem
 									icon={<Star size={22} color="#F59E0B" />}
 									label="Favorites"
-									onPress={() => router.push("/(app)/(tabs)/saved" as any)}
+									onPress={() => router.push("/saved" as any)}
 								/>
 								<QuickActionItem
 									icon={<Network size={22} color="#22C55E" />}
 									label="Templates"
-									onPress={() => {}}
+									onPress={() =>
+										Alert.alert(
+											"Coming Soon",
+											"Templates feature will be available soon.",
+										)
+									}
 								/>
 							</View>
 						</View>
@@ -223,9 +268,7 @@ export default function HomeScreen() {
 							<Text className="text-foreground font-semibold text-base">
 								Recent Projects
 							</Text>
-							<Pressable
-								onPress={() => router.push("/(app)/(tabs)/projects" as any)}
-							>
+							<Pressable onPress={() => router.push("/projects" as any)}>
 								<Text className="text-primary text-sm">See all</Text>
 							</Pressable>
 						</View>
@@ -250,9 +293,13 @@ export default function HomeScreen() {
 									onPress={handleCreateProject}
 									className="bg-primary rounded-xl px-6 py-3 mt-1 active:opacity-80"
 								>
-									<Text className="text-white font-semibold">
-										Create Project
-									</Text>
+									{isCreating ? (
+										<ActivityIndicator color="white" />
+									) : (
+										<Text className="text-white font-semibold">
+											Create Project
+										</Text>
+									)}
 								</Pressable>
 							</View>
 						) : (
@@ -267,9 +314,7 @@ export default function HomeScreen() {
 										deviceTypes={(
 											project.topology_data?.nodes?.slice(0, 3) ?? []
 										).map((n: any) => n.type as DeviceType)}
-										onPress={() =>
-											router.push(`/(app)/canvas/${project.id}` as any)
-										}
+										onPress={() => router.push(`/canvas/${project.id}` as any)}
 										onMenuPress={() => {}}
 									/>
 								))}
@@ -293,7 +338,11 @@ export default function HomeScreen() {
 					shadowOffset: { width: 0, height: 4 },
 				}}
 			>
-				<Plus size={26} color="white" />
+				{isCreating ? (
+					<ActivityIndicator color="white" />
+				) : (
+					<Plus size={26} color="white" />
+				)}
 			</Pressable>
 		</View>
 	);

@@ -62,7 +62,7 @@ export default function RegisterScreen() {
 				});
 				if (err) throw new Error(err.message);
 			}
-			router.replace("/(app)/(tabs)/home");
+			router.replace("/home");
 		} catch (e: unknown) {
 			setError(
 				e instanceof Error

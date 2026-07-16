@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import {
 	FlatList,
 	KeyboardAvoidingView,
+	Platform,
 	Pressable,
 	Text,
 	TextInput,
@@ -192,7 +193,9 @@ export function TerminalPanel({ onClose }: TerminalPanelProps) {
 			/>
 
 			{/* Input row */}
-			<KeyboardAvoidingView behavior="padding">
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : undefined}
+			>
 				<View
 					style={{
 						flexDirection: "row",

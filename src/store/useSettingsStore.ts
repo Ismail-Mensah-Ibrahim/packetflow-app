@@ -36,7 +36,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
 	showLinkLabels: true,
 	showGrid: true,
 	units: "metric",
-	backend: "supabase",
+	backend: "firebase",
 
 	setThemeMode: (themeMode) => set({ themeMode }),
 	setLanguage: (language) => set({ language }),

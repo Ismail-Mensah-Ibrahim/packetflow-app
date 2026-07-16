@@ -10,12 +10,13 @@ import {
 	TextInput,
 	View,
 } from "react-native";
+import { backendApi } from "@/client/backend";
 import { useSession } from "@/ctx";
-import { updateProfile } from "@/db/api";
 import { useAppStore } from "@/store/useAppStore";
 
 export default function EditProfileScreen() {
-	const { session } = useSession();
+	const { session, firebaseUser } = useSession();
+	const userId = session?.user.id || firebaseUser?.uid;
 	const { profile, setProfile } = useAppStore();
 
 	const [fullName, setFullName] = useState(profile?.full_name ?? "");
@@ -40,7 +41,7 @@ export default function EditProfileScreen() {
 		setLoading(true);
 		setError("");
 		try {
-			const updated = await updateProfile(session?.user.id!, {
+			const updated = await backendApi.updateProfile(userId!, {
 				full_name: fullName,
 				bio,
 			});

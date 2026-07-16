@@ -44,9 +44,7 @@ export default function SavedScreen() {
 								deviceTypes={(
 									project.topology_data?.nodes?.slice(0, 3) ?? []
 								).map((n: any) => n.type as DeviceType)}
-								onPress={() =>
-									router.push(`/(app)/canvas/${project.id}` as any)
-								}
+								onPress={() => router.push(`/canvas/${project.id}` as any)}
 								onMenuPress={() => {}}
 							/>
 						))}

@@ -30,8 +30,8 @@ import Animated, {
 	withSpring,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
+import { backendApi } from "@/client/backend";
 import { DeviceIcon, getDeviceColor } from "@/components/DeviceIcon";
-import { fetchProjectById } from "@/db/api";
 import { CABLE_COLORS } from "@/lib/constants";
 import type { NetworkEdge, NetworkNode } from "@/types";
 
@@ -152,7 +152,8 @@ export default function ViewTopologyScreen() {
 			setLoading(false);
 			return;
 		}
-		fetchProjectById(projectId)
+		backendApi
+			.fetchProjectById(projectId)
 			.then((proj) => {
 				if (!proj) throw new Error("Project not found");
 				setProjectName(proj.name);

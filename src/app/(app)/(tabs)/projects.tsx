@@ -5,6 +5,7 @@ import { Archive, Copy, Plus, Search, Star, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
 	ActivityIndicator,
+	Alert,
 	Pressable,
 	ScrollView,
 	Text,
@@ -12,34 +13,30 @@ import {
 	View,
 } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { backendApi } from "@/client/backend";
 import { EmptyState } from "@/components/EmptyState";
 import { ProjectCard } from "@/components/ProjectCard";
 import { useSession } from "@/ctx";
-import {
-	createProject,
-	deleteProject,
-	duplicateProject,
-	fetchProjects,
-	updateProjectMeta,
-} from "@/db/api";
 import { useAppStore } from "@/store/useAppStore";
 import type { DeviceType } from "@/types";
 
 type TabType = "recent" | "shared";
 
 export default function ProjectsScreen() {
-	const { session } = useSession();
+	const { session, firebaseUser } = useSession();
+	const userId = session?.user.id || firebaseUser?.uid;
 	const { projects, setProjects, addProject, removeProject, updateProject } =
 		useAppStore();
 	const [activeTab, setActiveTab] = useState<TabType>("recent");
 	const [search, setSearch] = useState("");
 	const [menuProjectId, setMenuProjectId] = useState<string | null>(null);
+	const [isCreating, setIsCreating] = useState(false);
 
 	const { isLoading, refetch } = useQuery({
-		queryKey: ["projects", session?.user.id],
-		queryFn: () => fetchProjects(session?.user.id!),
-		enabled: !!session?.user.id,
-		onSuccess: (data: Awaited<ReturnType<typeof fetchProjects>>) =>
+		queryKey: ["projects", userId],
+		queryFn: () => backendApi.fetchProjects(userId!),
+		enabled: !!userId,
+		onSuccess: (data: Awaited<ReturnType<typeof backendApi.fetchProjects>>) =>
 			setProjects(data),
 	} as any);
 
@@ -54,46 +51,61 @@ export default function ProjectsScreen() {
 	);
 
 	const handleCreate = async () => {
+		if (isCreating) return;
+		setIsCreating(true);
 		try {
-			const p = await createProject(
+			const p = await backendApi.createProject(
+				userId!,
 				`Network ${Date.now().toString().slice(-4)}`,
 			);
 			addProject(p);
-			router.push(`/(app)/canvas/${p.id}` as any);
-		} catch (_e) {}
+			router.push(`/canvas/${p.id}` as any);
+		} catch (_e: any) {
+			Alert.alert("Error creating project", _e.message);
+		} finally {
+			setIsCreating(false);
+		}
 	};
 
 	const handleDelete = async (id: string) => {
 		try {
-			await deleteProject(id);
+			await backendApi.deleteProject(id);
 			removeProject(id);
-		} catch (_e) {}
+		} catch (_e: any) {
+			Alert.alert("Error deleting project", _e.message);
+		}
 		setMenuProjectId(null);
 	};
 
 	const handleDuplicate = async (id: string) => {
-		const project = projects.find((p) => p.id === id);
-		if (!project) return;
 		try {
-			const copy = await duplicateProject(project);
+			const project = projects.find((p) => p.id === id);
+			if (!project) return;
+			const copy = await backendApi.duplicateProject(project);
 			addProject(copy);
-		} catch (_e) {}
+		} catch (_e: any) {
+			Alert.alert("Error duplicating project", _e.message);
+		}
 		setMenuProjectId(null);
 	};
 
 	const handleToggleFavorite = async (id: string, current: boolean) => {
 		try {
-			await updateProjectMeta(id, { is_favorite: !current });
+			await backendApi.updateProjectMeta(id, { is_favorite: !current });
 			updateProject(id, { is_favorite: !current });
-		} catch (_e) {}
+		} catch (_e: any) {
+			Alert.alert("Error updating project", _e.message);
+		}
 		setMenuProjectId(null);
 	};
 
 	const handleArchive = async (id: string) => {
 		try {
-			await updateProjectMeta(id, { is_archived: true });
+			await backendApi.updateProjectMeta(id, { is_archived: true });
 			removeProject(id);
-		} catch (_e) {}
+		} catch (_e: any) {
+			Alert.alert("Error archiving project", _e.message);
+		}
 		setMenuProjectId(null);
 	};
 
@@ -190,7 +202,7 @@ export default function ProjectsScreen() {
 										).map((n: any) => n.type as DeviceType)}
 										onPress={() => {
 											setMenuProjectId(null);
-											router.push(`/(app)/canvas/${project.id}` as any);
+											router.push(`/canvas/${project.id}` as any);
 										}}
 										onMenuPress={() =>
 											setMenuProjectId(

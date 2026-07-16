@@ -1,9 +1,14 @@
 // Firebase JS SDK client — PacketFlow
 // Credentials are loaded from EXPO_PUBLIC_FIREBASE_* env vars.
 // Switch between Supabase and Firebase via useSettingsStore.backend
+
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
-import { type Auth, getAuth } from "firebase/auth";
+import { type Auth, getAuth, initializeAuth } from "firebase/auth";
+// @ts-ignore - TS definitions sometimes miss getReactNativePersistence in firebase/auth
+import { getReactNativePersistence } from "firebase/auth";
 import { type Firestore, getFirestore } from "firebase/firestore";
+import { Platform } from "react-native";
 
 const firebaseConfig = {
 	apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "",
@@ -23,6 +28,23 @@ if (getApps().length === 0) {
 	app = getApp();
 }
 
+let auth: Auth;
+if (Platform.OS === "web") {
+	auth = getAuth(app);
+} else {
+	try {
+		auth = initializeAuth(app, {
+			persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+		});
+	} catch (e: any) {
+		if (e.code === "auth/already-initialized") {
+			auth = getAuth(app);
+		} else {
+			throw e;
+		}
+	}
+}
+
 export const firebaseApp = app;
-export const firebaseAuth: Auth = getAuth(app);
+export const firebaseAuth: Auth = auth;
 export const firestore: Firestore = getFirestore(app);
