@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "buildNumber": "1",
-      "bundleIdentifier": "com.miaoda.appcyi7jn4dtfcx"
+      "bundleIdentifier": "com.packetflow.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "versionCode": 1,
-      "package": "com.miaoda.appcyi7jn4dtfcx"
+      "package": "com.packetflow.app"
     },
     "web": {
       "bundler": "metro",
@@ -34,9 +34,6 @@
       "expo-sharing",
       "expo-file-system"
     ],
-    "router": {
-      "root": "src"
-    },
     "experiments": {
       "typedRoutes": true
     }

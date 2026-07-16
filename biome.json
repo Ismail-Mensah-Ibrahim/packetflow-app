@@ -1,6 +1,22 @@
 {
-	"extends": ["miaoda-expo-devkit/biome"],
 	"files": {
 		"includes": ["src/**/*.{js,jsx,ts,tsx}"]
+	},
+	"linter": {
+		"rules": {
+			"suspicious": {
+				"noExplicitAny": "off",
+				"noArrayIndexKey": "off",
+				"useIterableCallbackReturn": "off"
+			},
+			"correctness": {
+				"noUnusedVariables": "off",
+				"noUnusedImports": "off",
+				"noUnusedFunctionParameters": "off"
+			},
+			"style": {
+				"noNonNullAssertion": "off"
+			}
+		}
 	}
 }
