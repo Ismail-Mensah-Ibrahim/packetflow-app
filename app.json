@@ -2,7 +2,7 @@
   "expo": {
     "name": "PacketFlow Mobile App",
     "slug": "packetflow-app",
-    "version": "1.0.26",
+    "version": "1.0.27",
     "orientation": "portrait",
     "scheme": "packetflow",
     "icon": "./assets/icon.png",
