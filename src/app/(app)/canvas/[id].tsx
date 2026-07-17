@@ -50,6 +50,7 @@ import { backendApi } from "@/client/backend";
 import { CablePickerModal } from "@/components/CablePickerModal";
 import { DeviceIcon, getDeviceColor } from "@/components/DeviceIcon";
 import { EdgeDetailSheet } from "@/components/EdgeDetailSheet";
+import { useSession } from "@/ctx";
 import { DeviceDrawer } from "@/features/devices/DeviceDrawer";
 import { NodeDetailSheet } from "@/features/devices/NodeDetailSheet";
 import { TerminalPanel } from "@/features/terminal/TerminalPanel";
@@ -62,6 +63,7 @@ import {
 	generatePathTraceOutput,
 	generateTraceOutput,
 } from "@/lib/tracePacket";
+import { useAppStore } from "@/store/useAppStore";
 import type { PacketType } from "@/store/useCanvasStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
@@ -601,7 +603,12 @@ export default function CanvasScreen() {
 		if (!projectId) return;
 		(async () => {
 			try {
-				const project = await backendApi.fetchProjectById(projectId);
+				const fetchReq = backendApi.fetchProjectById(projectId);
+				const timeoutReq = new Promise<never>((_, reject) =>
+					setTimeout(() => reject(new Error("Timeout loading project")), 3000),
+				);
+				const project = await Promise.race([fetchReq, timeoutReq]);
+
 				if (project) {
 					setProjectName(project.name);
 					const remoteNodes = project.topology_data?.nodes ?? [];
@@ -645,6 +652,13 @@ export default function CanvasScreen() {
 				if (cached) {
 					setProjectName(cached.projectName);
 					loadTopology(projectId, cached.topology.nodes, cached.topology.edges);
+					setIsOffline(true);
+				} else {
+					// Brand new offline project
+					const store = useAppStore.getState();
+					const project = store.projects.find((p) => p.id === projectId);
+					if (project) setProjectName(project.name);
+					loadTopology(projectId, [], []);
 					setIsOffline(true);
 				}
 			} finally {

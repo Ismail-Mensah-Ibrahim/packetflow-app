@@ -90,7 +90,8 @@ export async function fbCreateProject(
 	description = "",
 ): Promise<Project> {
 	const ref = doc(collection(firestore, "projects"));
-	const now = serverTimestamp();
+	const nowStr = new Date().toISOString();
+
 	const data = {
 		user_id: userId,
 		name,
@@ -100,12 +101,14 @@ export async function fbCreateProject(
 		is_favorite: false,
 		topology_data: { nodes: [], edges: [] },
 		thumbnail_url: null,
-		created_at: now,
-		updated_at: now,
+		created_at: nowStr,
+		updated_at: nowStr,
 	};
-	await setDoc(ref, data);
-	const snap = await getDoc(ref);
-	return docToProject(snap.id, snap.data() as Record<string, unknown>);
+
+	// Fire and forget so it works offline instantly
+	setDoc(ref, data).catch(console.warn);
+
+	return docToProject(ref.id, data as Record<string, unknown>);
 }
 
 export async function fbUpdateTopology(
