@@ -17,8 +17,7 @@ import {
 	Wrench,
 	X,
 } from "lucide-react-native";
-import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Pressable,
@@ -46,6 +45,7 @@ import Svg, {
 	Rect,
 	Text as SvgText,
 } from "react-native-svg";
+import { useShallow } from "zustand/react/shallow";
 import { backendApi } from "@/client/backend";
 import { CablePickerModal } from "@/components/CablePickerModal";
 import { DeviceIcon, getDeviceColor } from "@/components/DeviceIcon";
@@ -65,6 +65,7 @@ import {
 import type { PacketType } from "@/store/useCanvasStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
+import { useSyncStore } from "@/store/useSyncStore";
 import { useTerminalStore } from "@/store/useTerminalStore";
 import type { CableType, DeviceType, NetworkEdge, NetworkNode } from "@/types";
 
@@ -316,6 +317,15 @@ function EdgeLine({
 		</Svg>
 	);
 }
+const MemoEdgeLine = React.memo(EdgeLine, (prev, next) => {
+	return (
+		prev.edge === next.edge &&
+		prev.selected === next.selected &&
+		prev.showLabels === next.showLabels &&
+		prev.simulationMode === next.simulationMode &&
+		prev.isTracePath === next.isTracePath
+	);
+});
 
 // ─── Device node ──────────────────────────────────────────────────────────────
 function DeviceNode({
@@ -464,6 +474,14 @@ function DeviceNode({
 		</GestureDetector>
 	);
 }
+const MemoDeviceNode = React.memo(DeviceNode, (prev, next) => {
+	return (
+		prev.node === next.node &&
+		prev.selected === next.selected &&
+		prev.isConnecting === next.isConnecting &&
+		prev.connectingFrom === next.connectingFrom
+	);
+});
 
 // ─── Main Canvas Screen ───────────────────────────────────────────────────────
 export default function CanvasScreen() {
@@ -507,14 +525,60 @@ export default function CanvasScreen() {
 		packetType,
 		setSimulationMode,
 		setPacketType,
-	} = useCanvasStore();
+	} = useCanvasStore(
+		useShallow((state) => ({
+			nodes: state.nodes,
+			edges: state.edges,
+			selectedNodeIds: state.selectedNodeIds,
+			selectedEdgeIds: state.selectedEdgeIds,
+			zoom: state.zoom,
+			panX: state.panX,
+			panY: state.panY,
+			showGrid: state.showGrid,
+			isConnecting: state.isConnecting,
+			connectingFromNodeId: state.connectingFromNodeId,
+			loadTopology: state.loadTopology,
+			addNode: state.addNode,
+			moveNode: state.moveNode,
+			removeNode: state.removeNode,
+			addEdge: state.addEdge,
+			updateEdge: state.updateEdge,
+			selectNode: state.selectNode,
+			selectEdge: state.selectEdge,
+			clearSelection: state.clearSelection,
+			deleteSelected: state.deleteSelected,
+			setZoom: state.setZoom,
+			setPan: state.setPan,
+			fitToScreen: state.fitToScreen,
+			setConnecting: state.setConnecting,
+			toggleGrid: state.toggleGrid,
+			undo: state.undo,
+			redo: state.redo,
+			undoStack: state.undoStack,
+			redoStack: state.redoStack,
+			isDirty: state.isDirty,
+			clearDirty: state.clearDirty,
+			simulationMode: state.simulationMode,
+			packetType: state.packetType,
+			setSimulationMode: state.setSimulationMode,
+			setPacketType: state.setPacketType,
+		})),
+	);
 
 	const {
 		isExpanded: terminalExpanded,
 		setExpanded: setTerminalExpanded,
 		addLine,
-	} = useTerminalStore();
-	const { showLinkLabels } = useSettingsStore();
+	} = useTerminalStore(
+		useShallow((state) => ({
+			isExpanded: state.isExpanded,
+			setExpanded: state.setExpanded,
+			addLine: state.addLine,
+		})),
+	);
+	const { showLinkLabels } = useSettingsStore(
+		useShallow((state) => ({ showLinkLabels: state.showLinkLabels })),
+	);
 	const [simPanelVisible, setSimPanelVisible] = useState(false);
 
 	const [loading, setLoading] = useState(true);
@@ -589,54 +653,62 @@ export default function CanvasScreen() {
 		})();
 	}, [projectId, loadTopology]);
 
-	// Auto-save + cache update
+	// Register project with SyncEngine when it changes
+	const queueSave = useSyncStore((s) => s.queueSave);
+	const lastSyncedAt = useSyncStore((s) => s.lastSyncedAt);
+	const isSyncing = useSyncStore((s) => s.isSyncing);
+
 	useEffect(() => {
-		if (!isDirty || !projectId) return;
-		const timer = setTimeout(async () => {
-			setIsSaving(true);
-			try {
-				await backendApi.updateTopology(projectId, { nodes, edges });
-				await saveTopologyCache(projectId, projectName, { nodes, edges });
-				clearDirty();
-				setLastSaved(new Date());
-			} catch {
-				await saveTopologyCache(projectId, projectName, { nodes, edges });
-			} finally {
-				setIsSaving(false);
-			}
-		}, 3000);
-		return () => clearTimeout(timer);
-	}, [isDirty, nodes, edges, projectId, projectName, clearDirty]);
+		if (isDirty && projectId) {
+			queueSave(projectId, projectName, nodes, edges);
+			clearDirty();
+		}
+	}, [isDirty, nodes, edges, projectId, projectName, clearDirty, queueSave]);
 
 	// Canvas pan/zoom gestures
-	const pinchGesture = Gesture.Pinch()
-		.onStart(() => {
-			savedScale.value = canvasScale.value;
-		})
-		.onUpdate((e) => {
-			const newScale = Math.min(Math.max(savedScale.value * e.scale, 0.25), 4);
-			canvasScale.value = newScale;
-		})
-		.onEnd(() => {
-			runOnJS(setZoom)(canvasScale.value);
-		});
+	// Canvas pan/zoom gestures
+	const pinchGesture = React.useMemo(
+		() =>
+			Gesture.Pinch()
+				.onStart(() => {
+					savedScale.value = canvasScale.value;
+				})
+				.onUpdate((e) => {
+					const newScale = Math.min(
+						Math.max(savedScale.value * e.scale, 0.25),
+						4,
+					);
+					canvasScale.value = newScale;
+				})
+				.onEnd(() => {
+					runOnJS(setZoom)(canvasScale.value);
+				}),
+		[canvasScale, savedScale, setZoom],
+	);
 
-	const panGesture = Gesture.Pan()
-		.minPointers(1)
-		.maxPointers(1)
-		.onStart(() => {
-			savedX.value = canvasX.value;
-			savedY.value = canvasY.value;
-		})
-		.onUpdate((e) => {
-			canvasX.value = savedX.value + e.translationX;
-			canvasY.value = savedY.value + e.translationY;
-		})
-		.onEnd(() => {
-			runOnJS(setPan)(canvasX.value, canvasY.value);
-		});
+	const panGesture = React.useMemo(
+		() =>
+			Gesture.Pan()
+				.minPointers(1)
+				.maxPointers(1)
+				.onStart(() => {
+					savedX.value = canvasX.value;
+					savedY.value = canvasY.value;
+				})
+				.onUpdate((e) => {
+					canvasX.value = savedX.value + e.translationX;
+					canvasY.value = savedY.value + e.translationY;
+				})
+				.onEnd(() => {
+					runOnJS(setPan)(canvasX.value, canvasY.value);
+				}),
+		[canvasX, canvasY, savedX, savedY, setPan],
+	);
 
-	const composed = Gesture.Simultaneous(pinchGesture, panGesture);
+	const composed = React.useMemo(
+		() => Gesture.Simultaneous(pinchGesture, panGesture),
+		[pinchGesture, panGesture],
+	);
 
 	const canvasAnimStyle = useAnimatedStyle(() => ({
 		transform: [
@@ -990,9 +1062,10 @@ export default function CanvasScreen() {
 
 	const handleFitScreen = () => {
 		fitToScreen(screenW, screenH - 160);
-		canvasScale.value = withSpring(zoom, { stiffness: 100 });
-		canvasX.value = withSpring(panX);
-		canvasY.value = withSpring(panY);
+		const state = useCanvasStore.getState();
+		canvasScale.value = withSpring(state.zoom, { stiffness: 100 });
+		canvasX.value = withSpring(state.panX);
+		canvasY.value = withSpring(state.panY);
 	};
 
 	const zoomIn = () => {
@@ -1137,7 +1210,7 @@ export default function CanvasScreen() {
 
 						{/* Edges */}
 						{edges.map((edge) => (
-							<EdgeLine
+							<MemoEdgeLine
 								key={edge.id}
 								edge={edge}
 								nodes={nodes}
@@ -1155,7 +1228,7 @@ export default function CanvasScreen() {
 
 						{/* Nodes */}
 						{nodes.map((node) => (
-							<DeviceNode
+							<MemoDeviceNode
 								key={node.id}
 								node={node}
 								selected={selectedNodeIds.includes(node.id)}
