@@ -300,13 +300,42 @@ export function NodeDetailSheet({ nodeId, onClose }: NodeDetailSheetProps) {
 							placeholder="Optional description..."
 							placeholderTextColor="#334155"
 							multiline
-							numberOfLines={2}
-							style={{ ...inputStyle, height: 56, textAlignVertical: "top" }}
+							style={[inputStyle, { minHeight: 60, textAlignVertical: "top" }]}
 						/>
 					</View>
+
+					{/* Router Specific Details */}
+					{node.type.includes("router") && (
+						<View style={{ gap: 12, marginTop: 8 }}>
+							<SectionHeader title="Routing Table" count={0} />
+							<View
+								style={{
+									backgroundColor: "#0D1829",
+									borderWidth: 1,
+									borderColor: "#1E2D45",
+									borderRadius: 10,
+									padding: 16,
+									alignItems: "center",
+									justifyContent: "center",
+									borderStyle: "dashed",
+								}}
+							>
+								<Text
+									style={{
+										color: "#64748B",
+										fontSize: 13,
+										textAlign: "center",
+									}}
+								>
+									Routing simulation engine not yet enabled.{"\n"}
+									Static routes will appear here.
+								</Text>
+							</View>
+						</View>
+					)}
 				</View>
 
-				{/* Interfaces */}
+				{/* Interfaces Section */}
 				<View style={{ gap: 10 }}>
 					<SectionHeader title="Interfaces" count={node.interfaces.length} />
 					{node.interfaces.map((iface) => (

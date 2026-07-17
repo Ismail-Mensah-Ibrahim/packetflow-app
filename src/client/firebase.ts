@@ -4,13 +4,7 @@
 
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
-// @ts-expect-error
-import {
-	type Auth,
-	getAuth,
-	getReactNativePersistence,
-	initializeAuth,
-} from "firebase/auth";
+import { type Auth, getAuth, initializeAuth } from "firebase/auth";
 import { type Firestore, initializeFirestore } from "firebase/firestore";
 import { Platform } from "react-native";
 
@@ -37,9 +31,7 @@ if (Platform.OS === "web") {
 	auth = getAuth(app);
 } else {
 	try {
-		auth = initializeAuth(app, {
-			persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-		});
+		auth = initializeAuth(app);
 	} catch (e: any) {
 		if (e.code === "auth/already-initialized") {
 			auth = getAuth(app);
