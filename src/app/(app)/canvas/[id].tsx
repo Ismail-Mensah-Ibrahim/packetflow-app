@@ -659,11 +659,21 @@ export default function CanvasScreen() {
 	const isSyncing = useSyncStore((s) => s.isSyncing);
 
 	useEffect(() => {
-		if (isDirty && projectId) {
+		if (!isDirty || !projectId) return;
+		const timer = setTimeout(() => {
 			queueSave(projectId, projectName, nodes, edges);
 			clearDirty();
-		}
+		}, 800);
+		return () => clearTimeout(timer);
 	}, [isDirty, nodes, edges, projectId, projectName, clearDirty, queueSave]);
+
+	// Flush sync on unmount to save any pending changes if user leaves screen
+	useEffect(() => {
+		return () => {
+			const { flushSync } = useSyncStore.getState();
+			flushSync();
+		};
+	}, []);
 
 	// Canvas pan/zoom gestures
 	// Canvas pan/zoom gestures
@@ -746,7 +756,6 @@ export default function CanvasScreen() {
 
 	// Sync status indicator
 	const [lastSaved, setLastSaved] = useState<Date | null>(null);
-	const [isSaving, setIsSaving] = useState(false);
 
 	const handleNodeTap = useCallback(
 		(nodeId: string) => {
@@ -1572,7 +1581,7 @@ export default function CanvasScreen() {
 
 				{/* Save status */}
 				<View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-					{isSaving ? (
+					{isSyncing || isDirty ? (
 						<>
 							<ActivityIndicator size={10} color="#60A5FA" />
 							<Text

@@ -48,8 +48,12 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 			// Always save to local cache first
 			await saveTopologyCache(projectId, projectName, { nodes, edges });
 
-			// Attempt remote sync
-			await backendApi.updateTopology(projectId, { nodes, edges });
+			// Attempt remote sync with timeout protection
+			const updateReq = backendApi.updateTopology(projectId, { nodes, edges });
+			const timeoutReq = new Promise<void>((_, reject) =>
+				setTimeout(() => reject(new Error("Timeout")), 8000),
+			);
+			await Promise.race([updateReq, timeoutReq]);
 
 			set({
 				isSyncing: false,
