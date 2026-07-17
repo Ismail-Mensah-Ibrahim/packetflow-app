@@ -63,7 +63,11 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 			});
 		} catch (error: any) {
 			// Network failed or backend error
-			console.error("Sync error:", error);
+			if (error?.message !== "Timeout") {
+				console.error("Sync error:", error);
+			} else {
+				console.warn("Sync timeout. Operating in offline mode.");
+			}
 			set({
 				isSyncing: false,
 				isOffline: true,
