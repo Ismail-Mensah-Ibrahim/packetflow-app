@@ -133,10 +133,14 @@ export default function HomeScreen() {
 		if (isCreating) return;
 		setIsCreating(true);
 		try {
-			const p = await backendApi.createProject(
+			const req = backendApi.createProject(
 				userId!,
 				`Network ${Date.now().toString().slice(-4)}`,
 			);
+			const timeout = new Promise<never>((_, reject) =>
+				setTimeout(() => reject(new Error("Timeout creating project")), 8000),
+			);
+			const p = await Promise.race([req, timeout]);
 			addProject(p);
 			router.push(`/canvas/${p.id}` as any);
 		} catch (_e: any) {

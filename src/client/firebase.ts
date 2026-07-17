@@ -7,7 +7,7 @@ import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 import { type Auth, getAuth, initializeAuth } from "firebase/auth";
 // @ts-expect-error
 import { getReactNativePersistence } from "firebase/auth";
-import { type Firestore, getFirestore } from "firebase/firestore";
+import { type Firestore, initializeFirestore } from "firebase/firestore";
 import { Platform } from "react-native";
 
 const firebaseConfig = {
@@ -45,6 +45,17 @@ if (Platform.OS === "web") {
 	}
 }
 
+let db: Firestore;
+try {
+	db = initializeFirestore(app, {
+		experimentalForceLongPolling: true,
+	});
+} catch (e: any) {
+	// If already initialized during hot reload
+	const { getFirestore } = require("firebase/firestore");
+	db = getFirestore(app);
+}
+
 export const firebaseApp = app;
 export const firebaseAuth: Auth = auth;
-export const firestore: Firestore = getFirestore(app);
+export const firestore: Firestore = db;
