@@ -5,6 +5,8 @@
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 import { type Auth, getAuth, initializeAuth } from "firebase/auth";
+// @ts-ignore: getReactNativePersistence is missing from types in some Firebase 11 versions but exists at runtime
+import { getReactNativePersistence } from "firebase/auth";
 import { type Firestore, initializeFirestore } from "firebase/firestore";
 import { Platform } from "react-native";
 
@@ -31,7 +33,9 @@ if (Platform.OS === "web") {
 	auth = getAuth(app);
 } else {
 	try {
-		auth = initializeAuth(app);
+		auth = initializeAuth(app, {
+			persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+		});
 	} catch (e: any) {
 		if (e.code === "auth/already-initialized") {
 			auth = getAuth(app);

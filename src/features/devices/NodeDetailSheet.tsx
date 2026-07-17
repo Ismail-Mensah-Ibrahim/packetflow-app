@@ -333,6 +333,63 @@ export function NodeDetailSheet({ nodeId, onClose }: NodeDetailSheetProps) {
 							</View>
 						</View>
 					)}
+
+					{/* Switch Specific Details */}
+					{node.type.includes("switch") && (
+						<View style={{ gap: 12, marginTop: 8 }}>
+							<SectionHeader title="MAC Address Table" count={0} />
+							<View
+								style={{
+									backgroundColor: "#0D1829",
+									borderWidth: 1,
+									borderColor: "#1E2D45",
+									borderRadius: 10,
+									padding: 16,
+									alignItems: "center",
+									justifyContent: "center",
+									borderStyle: "dashed",
+								}}
+							>
+								<Text
+									style={{
+										color: "#64748B",
+										fontSize: 13,
+										textAlign: "center",
+									}}
+								>
+									MAC learning engine is currently idle.{"\n"}
+									Dynamic MAC entries will appear here.
+								</Text>
+							</View>
+
+							<View style={{ marginTop: 8 }}>
+								<SectionHeader title="VLAN Database" count={1} />
+								<View
+									style={{
+										backgroundColor: "#1E293B",
+										borderRadius: 8,
+										padding: 12,
+										marginTop: 4,
+									}}
+								>
+									<Text
+										style={{
+											color: "#CBD5E1",
+											fontSize: 13,
+											fontWeight: "600",
+										}}
+									>
+										VLAN 1 (default)
+									</Text>
+									<Text
+										style={{ color: "#94A3B8", fontSize: 12, marginTop: 2 }}
+									>
+										All ports assigned
+									</Text>
+								</View>
+							</View>
+						</View>
+					)}
 				</View>
 
 				{/* Interfaces Section */}
