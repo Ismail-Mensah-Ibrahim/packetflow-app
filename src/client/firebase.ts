@@ -5,10 +5,12 @@
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 import { type Auth, getAuth, initializeAuth } from "firebase/auth";
-// @ts-ignore: getReactNativePersistence is missing from types in some Firebase 11 versions but exists at runtime
-import { getReactNativePersistence } from "firebase/auth";
 import { type Firestore, initializeFirestore } from "firebase/firestore";
-import { Platform } from "react-native";
+import { LogBox, Platform } from "react-native";
+
+// biome-ignore lint/suspicious/noExplicitAny: ok
+// biome-ignore lint/style/useNodejsImportProtocol: ok
+const { getReactNativePersistence } = require("firebase/auth");
 
 const firebaseConfig = {
 	apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "",
@@ -55,6 +57,11 @@ try {
 	const { getFirestore } = require("firebase/firestore");
 	db = getFirestore(app);
 }
+
+LogBox.ignoreLogs([
+	"Could not reach Cloud Firestore backend",
+	"Backend didn't respond within 10 seconds",
+]);
 
 export const firebaseApp = app;
 export const firebaseAuth: Auth = auth;

@@ -390,6 +390,106 @@ export function NodeDetailSheet({ nodeId, onClose }: NodeDetailSheetProps) {
 							</View>
 						</View>
 					)}
+
+					{/* PC Specific Details */}
+					{node.type === "pc" && (
+						<View style={{ gap: 12, marginTop: 8 }}>
+							<SectionHeader title="Desktop Applications" />
+
+							<View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
+								<Pressable
+									style={{
+										flex: 1,
+										minWidth: "45%",
+										backgroundColor: "#0F172A",
+										borderWidth: 1,
+										borderColor: "#1E2D45",
+										borderRadius: 12,
+										padding: 16,
+										alignItems: "center",
+										justifyContent: "center",
+										gap: 8,
+									}}
+								>
+									<View
+										style={{
+											width: 40,
+											height: 40,
+											borderRadius: 8,
+											backgroundColor: "#1E293B",
+											alignItems: "center",
+											justifyContent: "center",
+										}}
+									>
+										<Text
+											style={{
+												color: "#F8FAFC",
+												fontSize: 18,
+												fontWeight: "700",
+												fontFamily: "monospace",
+											}}
+										>
+											C:\
+										</Text>
+									</View>
+									<Text
+										style={{
+											color: "#CBD5E1",
+											fontSize: 13,
+											fontWeight: "600",
+										}}
+									>
+										Command Prompt
+									</Text>
+								</Pressable>
+
+								<Pressable
+									style={{
+										flex: 1,
+										minWidth: "45%",
+										backgroundColor: "#0F172A",
+										borderWidth: 1,
+										borderColor: "#1E2D45",
+										borderRadius: 12,
+										padding: 16,
+										alignItems: "center",
+										justifyContent: "center",
+										gap: 8,
+									}}
+								>
+									<View
+										style={{
+											width: 40,
+											height: 40,
+											borderRadius: 8,
+											backgroundColor: "#1E293B",
+											alignItems: "center",
+											justifyContent: "center",
+										}}
+									>
+										<Text
+											style={{
+												color: "#3B82F6",
+												fontSize: 18,
+												fontWeight: "700",
+											}}
+										>
+											🌐
+										</Text>
+									</View>
+									<Text
+										style={{
+											color: "#CBD5E1",
+											fontSize: 13,
+											fontWeight: "600",
+										}}
+									>
+										Web Browser
+									</Text>
+								</Pressable>
+							</View>
+						</View>
+					)}
 				</View>
 
 				{/* Interfaces Section */}
