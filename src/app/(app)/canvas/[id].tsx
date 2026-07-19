@@ -864,7 +864,7 @@ export default function CanvasScreen() {
 				}
 			}
 			const edge = addEdge(connectingFromNodeId, pendingTargetId, cableType);
-			// Trace output in terminal
+			// Trace output in terminal (silently – user opens terminal manually)
 			if (srcNode && tgtNode) {
 				const traceLines = generateTraceOutput(
 					srcNode,
@@ -873,7 +873,8 @@ export default function CanvasScreen() {
 					nodes.length,
 				);
 				traceLines.forEach((l) => addLine(l, "output"));
-				setTerminalExpanded(true);
+				// NOTE: intentionally NOT calling setTerminalExpanded(true) here
+				// so the terminal does not auto-open and bounce when a cable is connected
 			}
 			setCablePickerVisible(false);
 			setPendingTargetId(null);
@@ -886,7 +887,6 @@ export default function CanvasScreen() {
 			addEdge,
 			setConnecting,
 			addLine,
-			setTerminalExpanded,
 		],
 	);
 
@@ -913,7 +913,7 @@ export default function CanvasScreen() {
 					nodes.length,
 				);
 				traceLines.forEach((l) => addLine(l, "output"));
-				setTerminalExpanded(true);
+				// NOTE: intentionally NOT calling setTerminalExpanded(true) here
 			}
 		}
 		setCableCompatWarning(null);
@@ -929,7 +929,6 @@ export default function CanvasScreen() {
 		addLine,
 		nodes.find,
 		nodes.length,
-		setTerminalExpanded,
 	]);
 
 	const handleCompatCancel = useCallback(() => {
