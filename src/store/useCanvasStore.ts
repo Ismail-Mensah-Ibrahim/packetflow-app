@@ -44,6 +44,7 @@ interface CanvasStore extends CanvasState {
 	addNode: (type: DeviceType, x: number, y: number) => NetworkNode;
 	updateNode: (id: string, updates: Partial<NetworkNode>) => void;
 	moveNode: (id: string, x: number, y: number) => void;
+	moveSelectedNodes: (deltaX: number, deltaY: number) => void;
 	removeNode: (id: string) => void;
 	// Edges
 	addEdge: (
@@ -166,6 +167,27 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 		const y = snap ? snapToGrid(rawY) : rawY;
 		set((s) => ({
 			nodes: s.nodes.map((n) => (n.id === id ? { ...n, x, y } : n)),
+			isDirty: true,
+		}));
+	},
+
+	moveSelectedNodes: (deltaX, deltaY) => {
+		const { selectedNodeIds, snapToGrid: snap } = get();
+		if (selectedNodeIds.length === 0) return;
+		
+		set((s) => ({
+			nodes: s.nodes.map((n) => {
+				if (selectedNodeIds.includes(n.id)) {
+					const rawX = n.x + deltaX;
+					const rawY = n.y + deltaY;
+					return {
+						...n,
+						x: snap ? snapToGrid(rawX) : rawX,
+						y: snap ? snapToGrid(rawY) : rawY,
+					};
+				}
+				return n;
+			}),
 			isDirty: true,
 		}));
 	},

@@ -2,14 +2,12 @@ import { Copy, Send, Terminal, Trash2, X } from "lucide-react-native";
 import { useEffect, useRef } from "react";
 import {
 	FlatList,
-	KeyboardAvoidingView,
-	Platform,
 	Pressable,
 	Text,
 	TextInput,
 	View,
 } from "react-native";
-import Animated, { SlideInDown } from "react-native-reanimated";
+import Animated, { SlideInDown, useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useTerminalStore } from "@/store/useTerminalStore";
 
 const lineColors: Record<string, string> = {
@@ -33,6 +31,13 @@ export function TerminalPanel({ onClose }: TerminalPanelProps) {
 		exportLogs,
 		getPrompt,
 	} = useTerminalStore();
+
+	const keyboard = useAnimatedKeyboard();
+	const animatedStyle = useAnimatedStyle(() => {
+		return {
+			transform: [{ translateY: -keyboard.height.value }],
+		};
+	});
 
 	const flatListRef = useRef<FlatList>(null);
 
@@ -63,19 +68,22 @@ export function TerminalPanel({ onClose }: TerminalPanelProps) {
 	return (
 		<Animated.View
 			entering={SlideInDown.springify().damping(18)}
-			style={{
-				position: "absolute",
-				bottom: 0,
-				left: 0,
-				right: 0,
-				zIndex: 40,
-				backgroundColor: "#080F1A",
-				borderTopLeftRadius: 18,
-				borderTopRightRadius: 18,
-				borderTopWidth: 1,
-				borderColor: "#1E293B",
-				height: 300,
-			}}
+			style={[
+				{
+					position: "absolute",
+					bottom: 0,
+					left: 0,
+					right: 0,
+					zIndex: 40,
+					backgroundColor: "#080F1A",
+					borderTopLeftRadius: 18,
+					borderTopRightRadius: 18,
+					borderTopWidth: 1,
+					borderColor: "#1E293B",
+					height: 300,
+				},
+				animatedStyle,
+			]}
 		>
 			{/* Header */}
 			<View
@@ -193,64 +201,60 @@ export function TerminalPanel({ onClose }: TerminalPanelProps) {
 			/>
 
 			{/* Input row */}
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : undefined}
+			<View
+				style={{
+					flexDirection: "row",
+					alignItems: "center",
+					gap: 8,
+					paddingHorizontal: 12,
+					paddingVertical: 8,
+					borderTopWidth: 1,
+					borderTopColor: "#0F1F30",
+					backgroundColor: "#04090F",
+				}}
 			>
-				<View
+				<Text
 					style={{
-						flexDirection: "row",
-						alignItems: "center",
-						gap: 8,
-						paddingHorizontal: 12,
-						paddingVertical: 8,
-						borderTopWidth: 1,
-						borderTopColor: "#0F1F30",
-						backgroundColor: "#04090F",
+						color: "#4ADE80",
+						fontSize: 12,
+						fontFamily: "monospace",
+						flexShrink: 0,
 					}}
 				>
-					<Text
-						style={{
-							color: "#4ADE80",
-							fontSize: 12,
-							fontFamily: "monospace",
-							flexShrink: 0,
-						}}
-					>
-						{prompt}
-					</Text>
-					<TextInput
-						value={currentInput}
-						onChangeText={setInput}
-						placeholder="Type IOS command..."
-						placeholderTextColor="#1E3A5F"
-						onSubmitEditing={handleSend}
-						returnKeyType="send"
-						autoCapitalize="none"
-						autoCorrect={false}
-						style={{
-							flex: 1,
-							color: "#F1F5F9",
-							fontFamily: "monospace",
-							fontSize: 12,
-							paddingVertical: 4,
-						}}
-					/>
-					<Pressable
-						onPress={handleSend}
-						className="active:opacity-70"
-						style={{
-							width: 34,
-							height: 34,
-							borderRadius: 10,
-							backgroundColor: "#1D4ED8",
-							alignItems: "center",
-							justifyContent: "center",
-						}}
-					>
-						<Send size={14} color="white" />
-					</Pressable>
-				</View>
-			</KeyboardAvoidingView>
+					{prompt}
+				</Text>
+				<TextInput
+					value={currentInput}
+					onChangeText={setInput}
+					placeholder="Type IOS command..."
+					placeholderTextColor="#1E3A5F"
+					onSubmitEditing={handleSend}
+					returnKeyType="send"
+					autoCapitalize="none"
+					autoCorrect={false}
+					style={{
+						flex: 1,
+						color: "#F1F5F9",
+						fontFamily: "monospace",
+						fontSize: 12,
+						paddingVertical: 4,
+					}}
+				/>
+				<Pressable
+					onPress={handleSend}
+					className="active:opacity-70"
+					style={{
+						width: 34,
+						height: 34,
+						borderRadius: 10,
+						backgroundColor: "#1D4ED8",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<Send size={14} color="white" />
+				</Pressable>
+			</View>
 		</Animated.View>
 	);
 }

@@ -18,6 +18,7 @@
         "backgroundColor": "#ffffff"
       },
       "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
       "versionCode": 1,
       "package": "com.packetflow.app"
     },
