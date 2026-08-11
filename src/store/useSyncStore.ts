@@ -1,11 +1,17 @@
-import { create } from "zustand";
-import { AppState } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState } from "react-native";
+import { create } from "zustand";
 import { backendApi } from "@/client/backend";
 import { saveTopologyCache } from "@/lib/topologyCache";
 import type { NetworkEdge, NetworkNode } from "@/types";
 
-export type SyncStateStatus = "idle" | "dirty" | "syncing" | "synced" | "offline" | "error";
+export type SyncStateStatus =
+	| "idle"
+	| "dirty"
+	| "syncing"
+	| "synced"
+	| "offline"
+	| "error";
 
 interface PendingSave {
 	projectId: string;
@@ -45,14 +51,16 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 	queueSave: (projectId, projectName, nodes, edges) => {
 		const pendingSave = { projectId, projectName, nodes, edges };
 		set({ pendingSave, status: "dirty" });
-		
+
 		// Immediately persist locally asynchronously without blocking
-		get().flushLocal().then(() => {
-			// After local save succeeds, attempt cloud sync if not already syncing
-			if (get().status !== "syncing") {
-				get().syncData(0);
-			}
-		});
+		get()
+			.flushLocal()
+			.then(() => {
+				// After local save succeeds, attempt cloud sync if not already syncing
+				if (get().status !== "syncing") {
+					get().syncData(0);
+				}
+			});
 	},
 
 	flushLocal: async () => {
@@ -61,11 +69,14 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 		try {
 			// Write to both our topology cache and AsyncStorage for durability
 			await saveTopologyCache(
-				state.pendingSave.projectId, 
-				state.pendingSave.projectName, 
-				{ nodes: state.pendingSave.nodes, edges: state.pendingSave.edges }
+				state.pendingSave.projectId,
+				state.pendingSave.projectName,
+				{ nodes: state.pendingSave.nodes, edges: state.pendingSave.edges },
 			);
-			await AsyncStorage.setItem(PENDING_SAVE_KEY, JSON.stringify(state.pendingSave));
+			await AsyncStorage.setItem(
+				PENDING_SAVE_KEY,
+				JSON.stringify(state.pendingSave),
+			);
 		} catch (e) {
 			console.error("Failed to persist locally", e);
 		}
@@ -74,14 +85,14 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 	syncData: async (retryCount = 0) => {
 		const state = get();
 		if (!state.pendingSave) return;
-		
+
 		set({ status: "syncing", syncError: null, retryCount });
 		const { projectId, nodes, edges } = state.pendingSave;
 
 		try {
 			// Proceed with network attempt
 			await backendApi.updateTopology(projectId, { nodes, edges });
-			
+
 			// Success! Clear dirty flag and AsyncStorage
 			set({
 				status: "synced",
@@ -92,10 +103,10 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 			await AsyncStorage.removeItem(PENDING_SAVE_KEY);
 		} catch (error: any) {
 			console.warn(`Sync failed (attempt ${retryCount + 1}):`, error.message);
-			
+
 			if (retryCount < MAX_RETRIES) {
 				// Exponential backoff
-				const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+				const delay = Math.min(1000 * 2 ** retryCount, 30000);
 				set({ status: "error", syncError: error.message });
 				setTimeout(() => {
 					// Only retry if we haven't successfully synced in the meantime

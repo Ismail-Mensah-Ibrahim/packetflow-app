@@ -1,5 +1,5 @@
-import React from "react";
-import { Svg, Line, G } from "react-native-svg";
+import type React from "react";
+import { G, Line, Svg } from "react-native-svg";
 import { CANVAS_SIZE, GRID_STEP } from "@/lib/constants";
 
 export function GridBackground({ showGrid }: { showGrid: boolean }) {

@@ -29,32 +29,24 @@ import {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
 	runOnJS,
-	useAnimatedProps,
 	useAnimatedStyle,
 	useSharedValue,
-	withRepeat,
 	withSpring,
 	withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, {
-	Circle,
-	G,
-	Line,
-	Path,
-	Rect,
-	Text as SvgText,
-} from "react-native-svg";
 import { useShallow } from "zustand/react/shallow";
 import { backendApi } from "@/client/backend";
 import { CablePickerModal } from "@/components/CablePickerModal";
-import { DeviceIcon, getDeviceColor } from "@/components/DeviceIcon";
 import { EdgeDetailSheet } from "@/components/EdgeDetailSheet";
 import { useSession } from "@/ctx";
+import { MemoEdgeLine } from "@/features/canvas/components/edges/EdgeLine";
+import { GridBackground } from "@/features/canvas/components/grid/GridBackground";
+import { MemoDeviceNode } from "@/features/canvas/components/nodes/DeviceNode";
 import { DeviceDrawer } from "@/features/devices/DeviceDrawer";
 import { NodeDetailSheet } from "@/features/devices/NodeDetailSheet";
 import { TerminalPanel } from "@/features/terminal/TerminalPanel";
-import { CABLE_COLORS, getCableCompatWarning } from "@/lib/constants";
+import { getCableCompatWarning } from "@/lib/constants";
 import { exportPdf } from "@/lib/exportPdf";
 import { topologyToSvg } from "@/lib/exportSvg";
 import { loadTopologyCache, saveTopologyCache } from "@/lib/topologyCache";
@@ -71,13 +63,14 @@ import { useSyncStore } from "@/store/useSyncStore";
 import { useTerminalStore } from "@/store/useTerminalStore";
 import type { CableType, DeviceType, NetworkEdge, NetworkNode } from "@/types";
 
-const CANVAS_SIZE = 3000;
-const GRID_STEP = 20;
-const NODE_SIZE = 56;
+// Packet-type accent colours — used in the simulation panel UI
+const PACKET_COLORS: Record<string, string> = {
+	icmp: "#34D399",
+	tcp: "#60A5FA",
+	udp: "#F472B6",
+};
 
-import { GridBackground } from "@/features/canvas/components/grid/GridBackground";
-import { EdgeLine, MemoEdgeLine } from "@/features/canvas/components/edges/EdgeLine";
-import { DeviceNode, MemoDeviceNode } from "@/features/canvas/components/nodes/DeviceNode";
+const CANVAS_SIZE = 3000;
 
 // ─── Main Canvas Screen ───────────────────────────────────────────────────────
 export default function CanvasScreen() {
@@ -264,7 +257,7 @@ export default function CanvasScreen() {
 	// Register project with SyncEngine when it changes
 	const queueSave = useSyncStore((s) => s.queueSave);
 	const lastSyncedAt = useSyncStore((s) => s.lastSyncedAt);
-	const isSyncing = useSyncStore((s) => s.isSyncing);
+	const isSyncing = useSyncStore((s) => s.status === "syncing");
 
 	useEffect(() => {
 		if (!isDirty || !projectId) return;
@@ -275,11 +268,11 @@ export default function CanvasScreen() {
 		return () => clearTimeout(timer);
 	}, [isDirty, nodes, edges, projectId, projectName, clearDirty, queueSave]);
 
-	// Flush sync on unmount to save any pending changes if user leaves screen
+	// Flush to local storage on unmount — does not block navigation
 	useEffect(() => {
 		return () => {
-			const { flushSync } = useSyncStore.getState();
-			flushSync();
+			const { flushLocal } = useSyncStore.getState();
+			flushLocal();
 		};
 	}, []);
 

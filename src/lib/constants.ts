@@ -12,6 +12,10 @@ export const MAX_ZOOM = 4;
 export const DEFAULT_ZOOM = 1;
 export const UNDO_STACK_SIZE = 50;
 export const AUTO_SAVE_INTERVAL = 30000; // 30s
+// Canvas layout constants — used by canvas screen and extracted components
+export const CANVAS_SIZE = 3000;
+export const NODE_SIZE = 56;
+export const GRID_STEP = 20;
 
 export const DEVICE_CATALOG: DeviceCatalogItem[] = [
 	// ── LAYER 1 — PHYSICAL ──────────────────────────────────────────────────

@@ -1,6 +1,13 @@
 import { Info, Plus, Wifi, X } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View, Switch } from "react-native";
+import {
+	Pressable,
+	ScrollView,
+	Switch,
+	Text,
+	TextInput,
+	View,
+} from "react-native";
 import Animated, { SlideInDown } from "react-native-reanimated";
 import { DeviceIcon, getDeviceColor } from "@/components/DeviceIcon";
 import { DEVICE_CATALOG } from "@/lib/constants";
@@ -499,16 +506,49 @@ export function NodeDetailSheet({ nodeId, onClose }: NodeDetailSheetProps) {
 					{node.type === "server" && (
 						<View style={{ gap: 12, marginTop: 8 }}>
 							<SectionHeader title="Server Services" />
-							<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderBottomColor: "#1E293B", borderBottomWidth: 1 }}>
-								<Text style={{ color: "#F8FAFC", fontSize: 14 }}>HTTP Server</Text>
+							<View
+								style={{
+									flexDirection: "row",
+									alignItems: "center",
+									justifyContent: "space-between",
+									paddingVertical: 8,
+									borderBottomColor: "#1E293B",
+									borderBottomWidth: 1,
+								}}
+							>
+								<Text style={{ color: "#F8FAFC", fontSize: 14 }}>
+									HTTP Server
+								</Text>
 								<Switch value={httpEnabled} onValueChange={setHttpEnabled} />
 							</View>
-							<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderBottomColor: "#1E293B", borderBottomWidth: 1 }}>
-								<Text style={{ color: "#F8FAFC", fontSize: 14 }}>DHCP Server</Text>
+							<View
+								style={{
+									flexDirection: "row",
+									alignItems: "center",
+									justifyContent: "space-between",
+									paddingVertical: 8,
+									borderBottomColor: "#1E293B",
+									borderBottomWidth: 1,
+								}}
+							>
+								<Text style={{ color: "#F8FAFC", fontSize: 14 }}>
+									DHCP Server
+								</Text>
 								<Switch value={dhcpEnabled} onValueChange={setDhcpEnabled} />
 							</View>
-							<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderBottomColor: "#1E293B", borderBottomWidth: 1 }}>
-								<Text style={{ color: "#F8FAFC", fontSize: 14 }}>DNS Server</Text>
+							<View
+								style={{
+									flexDirection: "row",
+									alignItems: "center",
+									justifyContent: "space-between",
+									paddingVertical: 8,
+									borderBottomColor: "#1E293B",
+									borderBottomWidth: 1,
+								}}
+							>
+								<Text style={{ color: "#F8FAFC", fontSize: 14 }}>
+									DNS Server
+								</Text>
 								<Switch value={dnsEnabled} onValueChange={setDnsEnabled} />
 							</View>
 						</View>

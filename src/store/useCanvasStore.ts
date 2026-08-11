@@ -174,7 +174,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 	moveSelectedNodes: (deltaX, deltaY) => {
 		const { selectedNodeIds, snapToGrid: snap } = get();
 		if (selectedNodeIds.length === 0) return;
-		
+
+		(get() as any)._saveHistory();
 		set((s) => ({
 			nodes: s.nodes.map((n) => {
 				if (selectedNodeIds.includes(n.id)) {

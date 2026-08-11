@@ -1,14 +1,15 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import { Svg, Path, Circle, Text as SvgText, Rect } from "react-native-svg";
 import Animated, {
-	useSharedValue,
 	useAnimatedProps,
+	useSharedValue,
 	withRepeat,
 	withTiming,
 } from "react-native-reanimated";
-import { NetworkNode, NetworkEdge, PacketType } from "@/types";
+import { Circle, Path, Rect, Svg, Text as SvgText } from "react-native-svg";
 import { CABLE_COLORS, CANVAS_SIZE, NODE_SIZE } from "@/lib/constants";
+import type { PacketType } from "@/store/useCanvasStore";
+import type { NetworkEdge, NetworkNode } from "@/types";
 
 // Packet-type accent colours
 const PACKET_COLORS: Record<string, string> = {

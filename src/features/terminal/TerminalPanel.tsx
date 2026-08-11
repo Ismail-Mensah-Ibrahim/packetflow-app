@@ -1,13 +1,11 @@
 import { Copy, Send, Terminal, Trash2, X } from "lucide-react-native";
 import { useEffect, useRef } from "react";
-import {
-	FlatList,
-	Pressable,
-	Text,
-	TextInput,
-	View,
-} from "react-native";
-import Animated, { SlideInDown, useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
+import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+import Animated, {
+	SlideInDown,
+	useAnimatedKeyboard,
+	useAnimatedStyle,
+} from "react-native-reanimated";
 import { useTerminalStore } from "@/store/useTerminalStore";
 
 const lineColors: Record<string, string> = {
